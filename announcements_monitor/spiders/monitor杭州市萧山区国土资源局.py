@@ -36,9 +36,7 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        #log_obj.debug(u"准备分析内容：%s" %response.url)
         sel = scrapy.Selector(response)
-        items = []
         root_path = '//tbody/tr[@class="Row"]'
         sites = sel.xpath(root_path)  # [@id="list"] [@class="padding10"][position()>1]
         """在使用chrome等浏览器自带的提取extract xpath路径的时候,
@@ -58,32 +56,28 @@ class Spider(scrapy.Spider):
 
                 item['monitor_date'] = site.xpath('td[contains(@class,"DateColumn")]/text()').extract_first() # 发布日期
                 item['monitor_url'] = 'http://115.236.5.251/Bulletin/' + site.xpath('td[@align="left"]/a/@href').extract_first() # 链接
-                item['monitor_content'] = ""
-
 
                 if response.url in self.urls1:
                     item['parcel_status'] = 'onsell'
-                    yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse2, dont_filter=False)
+                    yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=False)
                 elif response.url in self.urls2:
                     item['parcel_status'] = 'sold'
-                    yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse3, dont_filter=False)
+                    yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=False)
                 else:
                     yield item
             except:
                 log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
     def parse1(self, response):
-        """关键词：^(?!.*萧山区).*挂牌出让公告"""
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-
         try:
             e_table = bs_obj.find("table", class_="MsoNormalTable")
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            log_obj.error("%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
 if __name__ == '__main__':

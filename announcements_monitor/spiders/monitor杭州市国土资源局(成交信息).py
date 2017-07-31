@@ -51,7 +51,6 @@ class Spider(scrapy.Spider):
                 item['monitor_title'] = re.sub(r"[ \s]", "", site.xpath('td[2]/a/@title').extract_first()) # 标题
                 item['monitor_date'] = re.sub(r"[ \s]", "", site.xpath('td[3]/text()').extract_first()) # 成交日期 site.xpath('td[3]/text()').extract_first()
                 item['monitor_url'] = "http://www.hzgtj.gov.cn" + site.xpath('td[2]/a/@href').extract_first() # 链接
-                item['monitor_content'] = ""
 
                 if re.match(r'(杭政工出.*)|(杭政储出.*)', item['monitor_title'].encode('utf8')):
                     item['monitor_re'] = r'(杭政工出.*)|(杭政储出.*)'

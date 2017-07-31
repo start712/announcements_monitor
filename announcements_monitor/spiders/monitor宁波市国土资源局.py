@@ -109,7 +109,7 @@ class Spider(scrapy.Spider):
                 item['monitor_title'] = site[1].find('a', target='_blank').get('title')
                 item['monitor_date'] = site[2].get_text(strip=True)
                 item['monitor_url'] = 'http://www.nblr.gov.cn/' + site[1].find('a', target='_blank').get('href') # 链接
-                item["monitor_content"] = pd.DataFrame([re.sub(r'(\[)|(\])', '', area).encode('utf8'),])
+                item["monitor_extra"] = pd.DataFrame([re.sub(r'(\[)|(\])', '', area).encode('utf8'),])
 
                 if response.url in self.urls1:
                     item['parcel_status'] = 'onsell'
@@ -128,7 +128,7 @@ class Spider(scrapy.Spider):
 
         try:
             e_table = bs_obj.find("table", id='table125').table
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
         except:

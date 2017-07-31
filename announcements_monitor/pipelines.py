@@ -14,6 +14,7 @@ import os
 import json
 import copy
 import traceback
+import pandas
 
 
 log_path = r'%s/log/pipelines_error(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
@@ -111,17 +112,17 @@ class AnnouncementsMonitorPipeline(object):
 
             if isinstance(item['content_detail'],list):
                 item['content_detail'] = [df.to_json(force_ascii=False) for df in item['content_detail']]
-            else:
+            elif isinstance(item['content_detail'],pandas.core.frame.DataFrame):
                 item['content_detail'] = [item['content_detail'].to_json(force_ascii=False),]
 
-            if item['monitor_content']:
-                item['monitor_content'] = item['monitor_content'].to_json(force_ascii=False)
+            if isinstance(item['monitor_extra'],pandas.core.frame.DataFrame):
+                item['monitor_extra'] = item['monitor_extra'].to_json(force_ascii=False)
 
             query=self.dbpool.runInteraction(self._conditional_insert,item)#调用插入的方法
             #query.addErrback(self._handle_error,asynItem,spider)#调用异常处理方法
             return item
         except:
-            log_obj.error(u"process item error:%s\nINFO:%s" %(item["monitor_key"],traceback.format_exc()))
+            log_obj.error(u"process item error:%s\n%s\nINFO:%s" %(item["monitor_key"],item['content_detail'],traceback.format_exc()))
 
     #写入数据库中
     def _conditional_insert(self,tx,item):

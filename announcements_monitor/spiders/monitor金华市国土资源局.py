@@ -79,8 +79,8 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.find("table", class_="MsoNormalTable")
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            e_table = bs_obj.find("table")
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
         except:

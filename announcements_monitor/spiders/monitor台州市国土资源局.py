@@ -73,7 +73,7 @@ class Spider(scrapy.Spider):
                     yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse1, dont_filter=True)
                 elif re.search(ur'国有建设用地使用权出让结果公布', item['monitor_title']):
                     item['parcel_status'] = 'sold'
-                    yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse2, dont_filter=True)
+                    yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse1, dont_filter=True)
                 else:
                     yield item
             except:
@@ -84,7 +84,7 @@ class Spider(scrapy.Spider):
         item = response.meta['item']
         try:
             e_table = bs_obj.table
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
         except:

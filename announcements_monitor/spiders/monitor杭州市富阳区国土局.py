@@ -74,7 +74,6 @@ class Spider(scrapy.Spider):
                 item['monitor_title'] = site.xpath('a/text()').extract_first()
                 item['monitor_date'] = site.xpath('span/text()').extract_first()
                 item['monitor_url'] = site.xpath('a/@href').extract_first()
-                item['monitor_content'] = ""
 
                 if re.search(r'.*出让公告|.*拍卖公告|.*挂牌公告', item['monitor_title'].encode('utf8')):
                     item['parcel_status'] = 'onsell'
@@ -94,7 +93,7 @@ class Spider(scrapy.Spider):
         item = response.meta['item']
         try:
             e_table = bs_obj.table
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))

@@ -82,11 +82,11 @@ class Spider(scrapy.Spider):
             row_ps = [e_p.get_text(strip=True) for e_p in e_ps]
             row_ps = [filter(lambda x: re.search(x, s), row_ps) for s in re_text]
             df0 = pd.DataFrame(row_ps)
-            item['monitor_content'] = df0
+            item['monitor_extra'] = df0
 
             # 处理网页中的表格
             e_table = e_page.table
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
         except:

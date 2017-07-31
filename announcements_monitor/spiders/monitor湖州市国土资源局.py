@@ -78,7 +78,7 @@ class Spider(scrapy.Spider):
             while e_table.table:
                 e_table = e_table.table
 
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
         except:
