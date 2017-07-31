@@ -79,7 +79,7 @@ class AnnouncementsMonitorPipeline(object):
         """
         try:
             item = copy.deepcopy(item0)
-            item_list = ['monitor_id', 'monitor_title', 'monitor_key', 'monitor_date', 'monitor_url', 'monitor_content', 'parcel_key', 'monitor_re', 'parcel_status', 'content_detail', 'monitor_city']
+            item_list = ['monitor_id', 'monitor_title', 'monitor_key', 'monitor_date', 'monitor_url', 'monitor_extra', 'parcel_status', 'content_detail', 'monitor_city']
             for s in item_list:
                 if s not in item:
                     item[s] = ''
@@ -91,10 +91,9 @@ class AnnouncementsMonitorPipeline(object):
             #    log_obj.debug(u'%s中为空字符串的字段为%s' %(item['monitor_title'], s_list))
             item["monitor_date"] = re.sub(r'[\(（\)）\[\]]', '', item["monitor_date"])
 
-
-            if type(item['content_detail']) == type({}):
-                if not item["parcel_key"] and "parcel_no" in item['content_detail']:
-                    item["parcel_key"] = item['content_detail']["parcel_no"]#re.sub(r'\s+', '', item['content_detail']["parcel_key"])
+            #if type(item['content_detail']) == type({}):
+            #    if not item["parcel_key"] and "parcel_no" in item['content_detail']:
+            #        item["parcel_key"] = item['content_detail']["parcel_no"]#re.sub(r'\s+', '', item['content_detail']["parcel_key"])
 
                 # 对content_detail中增加一些内容便于清洗后的检查工作
                 #if "parcel_key" not in item['content_detail']:
@@ -103,14 +102,20 @@ class AnnouncementsMonitorPipeline(object):
                 #item['content_detail']['fixture_date'] = item["monitor_date"]
                 #item['content_detail']['url'] = item["monitor_url"]
 
-            re_type = re.sub('\\pP|\\pS', '', item["monitor_re"])
-            if item["parcel_key"]:
-                item["monitor_key"] = "%s/%s/%s/%s" % (item["monitor_id"], item["monitor_date"], re_type, item["parcel_key"])#re.sub(r'\s+', '', "%s/%s/%s" % (item["monitor_id"], item["monitor_date"], item["parcel_key"]))
+            #re_type = re.sub('\\pP|\\pS', '', item["monitor_re"])
+            #if item["parcel_key"]:
+            #    item["monitor_key"] = "%s/%s/%s/%s" % (item["monitor_id"], item["monitor_date"], re_type, item["parcel_key"])#re.sub(r'\s+', '', "%s/%s/%s" % (item["monitor_id"], item["monitor_date"], item["parcel_key"]))
+            #else:
+            #    item["monitor_key"] = "raw_page/%s/%s/%s/%s" % (item["monitor_id"], item["monitor_date"], re_type, item["monitor_title"])#re.sub(r'\s+', '', "raw_page/%s/%s/%s" % (item["monitor_id"], item["monitor_date"], item["monitor_title"]))
+            item["monitor_key"] = "%s/%s/%s" % (item["monitor_id"], item["monitor_date"], item["monitor_title"])
+
+            if isinstance(item['content_detail'],list):
+                item['content_detail'] = [df.to_json(force_ascii=False) for df in item['content_detail']]
             else:
-                item["monitor_key"] = "raw_page/%s/%s/%s/%s" % (item["monitor_id"], item["monitor_date"], re_type, item["monitor_title"])#re.sub(r'\s+', '', "raw_page/%s/%s/%s" % (item["monitor_id"], item["monitor_date"], item["monitor_title"]))
+                item['content_detail'] = [item['content_detail'].to_json(force_ascii=False),]
 
-
-            item['content_detail'] = json.dumps(item['content_detail'], ensure_ascii=False)#json.dumps({key: re.sub(r'\s+', '', str(item['content_detail'][key])) for key in item['content_detail']})
+            if item['monitor_content']:
+                item['monitor_content'] = item['monitor_content'].to_json(force_ascii=False)
 
             query=self.dbpool.runInteraction(self._conditional_insert,item)#调用插入的方法
             #query.addErrback(self._handle_error,asynItem,spider)#调用异常处理方法
@@ -120,18 +125,17 @@ class AnnouncementsMonitorPipeline(object):
 
     #写入数据库中
     def _conditional_insert(self,tx,item):
-        sql = "INSERT INTO monitor(`crawler_id`, `status`, `title`, `city`, `key`, `re`, `fixture_date`, `parcel_key`, `content`, `url`, `detail`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+        sql = "INSERT INTO monitor(`crawler_id`, `status`, `title`, `city`, `key`, `fixture_date`, `url`, `detail`, `extra`) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)"
         params = (item["monitor_id"], item['parcel_status'], item["monitor_title"], item["monitor_city"],
-                  item["monitor_key"], item["monitor_re"], item["monitor_date"], item["parcel_key"],
-                  item["monitor_content"], item["monitor_url"], item['content_detail'])
+                  item["monitor_key"], item["monitor_date"], item["monitor_url"], item['content_detail'], item["monitor_extra"])
         try:
             #csv_report.output_data(item, "result", method='a')
             tx.execute(sql,params)
             if params:
                 logger0.info(u"key saved:%s" % item["monitor_key"])
                 csv_file = r'\log\NEW(%s)' %datetime.datetime.date(datetime.datetime.today())
-                title = (u'地块名称', u'标题', u'城市', u'状态', u'网址')
-                content = (item["parcel_"], item["monitor_title"], item["monitor_city"], item['parcel_status'], item["monitor_url"])
+                title = (u'标题', u'城市', u'状态', u'网址')
+                content = (item["monitor_title"], item["monitor_city"], item['parcel_status'], item["monitor_url"])
                 csv_report.output_data([content,], csv_file, title=title, method = "a")
         except MySQLdb.IntegrityError:
             logger0.info(params)

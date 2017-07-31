@@ -77,12 +77,10 @@ class Spider(scrapy.Spider):
                 item['monitor_content'] = ""
 
                 if re.search(r'.*出让公告|.*拍卖公告|.*挂牌公告', item['monitor_title'].encode('utf8')):
-                    item['monitor_re'] = r'.*出让公告|.*拍卖公告|.*挂牌公告'
                     item['parcel_status'] = 'onsell'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,
                                          dont_filter=False)
                 elif re.search(r'.*使用权结果公示.*', item['monitor_title'].encode('utf8')):
-                    item['monitor_re'] = r'.*使用权结果公示.*'
                     item['parcel_status'] = 'sold'
                     yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1,
                                          dont_filter=False)
@@ -94,32 +92,12 @@ class Spider(scrapy.Spider):
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        e_table = bs_obj.table
         try:
-            # 成交公告中table第一行不是标题
-            if item['parcel_status'] == 'sold':
-                start_row = 1
-            else:
-                start_row = 0
-
-            df = html_table_reader.standardize(html_table_reader.table_tr_td(e_table, start_row=start_row), delimiter='=>')
-            for k in re_table:
-                df.columns = map(lambda x:re_table[re.search(ur'%s' %k, x).group()] if x and re.search(ur'%s' %k, x)
-                                 else x, df.columns)
-
-            for i in xrange(len(df.index)):
-                detail = df.iloc[i, :].to_dict()
-                content_detail = {'addition': {}}
-                for key in detail:
-                    if key in needed_data:
-                        content_detail[key] = detail[key]
-                    else:
-                        content_detail['addition'][key] = detail[key]
-
-                item['content_detail'] = content_detail
-                yield item
+            e_table = bs_obj.table
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
 

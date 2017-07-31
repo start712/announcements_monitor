@@ -19,6 +19,7 @@ import traceback
 import datetime
 import bs4
 import json
+
 log_path = r'%s/log/spider_DEBUG(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
@@ -26,19 +27,14 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 with open(os.getcwd() + r'\announcements_monitor\spiders\needed_data.txt', 'r') as f:
     s = f.read()
     needed_data = s.split(',')
 needed_data = [s.encode('utf8') for s in needed_data]
-
-title_type1 = ['parcel_no', 'parcel_location', '用地面积(㎡)', 'offer_area_m2', 'purpose',
-               '地上建筑总面积(m2)', 'plot_ratio', '建筑密度', '建筑限高（m）', '绿地率',
-               '出让年限(年)', 'starting_price_sum', '竞买保证金(万元)']
-title_type2 = ['parcel_no', 'parcel_location', 'offer_area_m2', 'purpose',
-               'plot_ratio', '出让年限', 'competitive_person', 'transaction_price_sum', '成交时间']
 
 class Spider(scrapy.Spider):
     name = "511714"
@@ -66,9 +62,28 @@ class Spider(scrapy.Spider):
                 item['monitor_date'] = e_li.find('span', class_='time').get_text(strip=True) # 成交日期
                 item['monitor_url'] = "http://www.linan.gov.cn/gtzyj/gsgg/cjxx/" + e_li.a.get('href')
 
-                yield item
+                if response.text in self.urls1:
+                    item['parcel_status'] = 'onsell'
+                elif response.text in self.urls2:
+                    item['parcel_status'] = 'sold'
+                elif response.text in self.urls3:
+                    item['parcel_status'] = 'update'
+
+                yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
             except:
                 log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+
+    def parse1(self, response):
+        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+        item = response.meta['item']
+
+        try:
+            e_table = bs_obj.table
+            item['content_detail'] = html_table_reader.table_tr_td(e_table)
+            yield item
+        except:
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            yield response.meta['item']
 
 if __name__ == '__main__':
     pass

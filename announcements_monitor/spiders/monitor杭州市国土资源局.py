@@ -30,53 +30,58 @@ html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 class Spider(scrapy.Spider):
-    name = "511708"
+    name = "511703" #出让信息
+    allowed_domains = ["www.hzgtj.gov.cn"]
 
     def start_requests(self):
-        # 嘉兴相应网址的index的系数，index_1代表第二页
-        self.urls1 = ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdzpgxxgg/index.html", ] + ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdzpgxxgg/index_%s.html" %i for i in xrange(3) if i > 0]
-        self.urls2 = ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdcrjggs/index.html", ] + ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdcrjggs/index_%s.html" % i for i in xrange(3) if i > 0]
+        self.url1 = ["http://www.hzgtj.gov.cn/fore/portal/infos/toList?parentIdStr=1-32-6686-&id=6686",]
+        self.url2 = ["http://www.hzgtj.gov.cn/fore/portal/infos/toList?parentIdStr=1-32-6285-&id=6285",]
 
-        for url in self.urls1 + self.urls2:
+        for url in self.url1 + self.url2:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+        sel = scrapy.Selector(response)
+        root_path = '/html/body/div[4]/div[2]/form/div[3]/table/tbody/tr/td/table[1]/tbody/tr'
+        sites = sel.xpath(root_path)  # [@id="list"] [@class="padding10"][position()>1]
         """在使用chrome等浏览器自带的提取extract xpath路径的时候,
-            导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
-        e_row = bs_obj.find_all('table', style='line-height:20pt;border-bottom:1px dashed #b0b6de')
-        for e_tr in e_row:
+           通常现在的浏览器都会对html文本进行一定的规范化,
+           导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
+        if not sites:
+            sites = sel.xpath(root_path.replace("/tbody",""))
+
+        for site in sites:
             item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '嘉兴'
-            e_tds = e_tr.find_all('td')
             try:
                 item['monitor_id'] = self.name
-                item['monitor_title'] = e_tds[0].get_text(strip=True) # 标题
-                item['monitor_date'] = e_tds[1].get_text(strip=True) # 成交日期 site.xpath('td[3]/text()').extract_first()
-                if response.url in self.urls1:
+                item['monitor_title'] = re.sub(r"[ \s]", "", site.xpath('td[2]/a/@title').extract_first()) # 标题
+                item['monitor_date'] = re.sub(r"[ \s]", "", site.xpath('td[3]/text()').extract_first()) # 成交日期 site.xpath('td[3]/text()').extract_first()
+                item['monitor_url'] = "http://www.hzgtj.gov.cn" + site.xpath('td[2]/a/@href').extract_first() # 链接
+
+                if response.url in self.url1:
                     item['parcel_status'] = 'onsell'
-                    item['monitor_url'] = "http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdzpgxxgg" + re.sub(ur'\./', '/',e_tds[0].a.get('href'))
                     yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse1, dont_filter=True)
-                elif response.url in self.urls2:
+                elif response.url in self.url2:
                     item['parcel_status'] = 'sold'
-                    item['monitor_url'] = "http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdcrjggs" + re.sub(ur'\./', '/',e_tds[0].a.get('href'))  # 链接
                     yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse1, dont_filter=True)
                 else:
                     yield item
             except:
                 log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
+
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.find('div', align='center').table
+            e_table = bs_obj.table
             df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
             item['content_detail'] = df
             yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
+
 
 if __name__ == '__main__':
     pass

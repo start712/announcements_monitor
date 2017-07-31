@@ -24,7 +24,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 key_dict = {
@@ -68,11 +69,11 @@ class Spider(scrapy.Spider):
                     item['monitor_content'] = ""
 
                     if re.search(r'.*公告.*', item['monitor_title'].encode('utf8')):
-                        item['monitor_re'] = r'.*公告.*'
+                        item['parcel_status'] = 'onsell'
                         yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,
                                              dont_filter=False)
                     elif re.search(r'.*公示.*', item['monitor_title'].encode('utf8')):
-                        item['monitor_re'] = r'.*公示.*'
+                        item['parcel_status'] = 'sold'
                         yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,
                                              dont_filter=False)
                     else:
@@ -81,106 +82,32 @@ class Spider(scrapy.Spider):
                     log_obj.update_error("%s中无法解析%s\n原因：%s" % (self.name, e_tr, traceback.format_exc()))
 
     def parse1(self, response):
-        """关键词：.*公告.*"""
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        parcel_data = []
-        item['parcel_status'] = 'onsell'
-        #item['content_html'] = bs_obj.prettify()
-        sites = bs_obj.find_all('table', style='border-collapse:collapse; border-color:#333333;font-size:12px;')
-            
+
         try:
-            for site in sites:
-                content_detail = {'addition':{}}
-                
-                if not site:
-                    log_obj.update_debug(u"%s{%s}没有检测到更多detail" %(self.name, response.url))
-                    
-                data_frame = pd.read_html(str(site), encoding='utf8')[0] #1
-                data_frame = data_frame.fillna('') # 替换缺失值
-                col_count = len(data_frame.columns)
-                if col_count % 2 == 0:
-                    # 一列标题，下一列为数据
-                    # 先将数据线data frame数据转化为numpy数组，然后将数组reshape改成2列
-                    arr = numpy.reshape(numpy.array(data_frame), (-1, 2))
-                    # 去除key中的空格和冒号
-                    data_dict = dict(arr)
-                    r = re.compile(ur'\s+|:|：')
-                    data_dict = {r.sub('', key): data_dict[key] for key in data_dict if (type(key) == type(u'') or type(key) == type('')) and key != 'nan' }
-                    for key in data_dict:
-                        if key in key_dict:
-                            # key_dict[key]将中文键名改成英文的
-                            content_detail[key_dict[key]] = data_dict[key]
-                        else:
-                            content_detail['addition'][key] = data_dict[key]
-
-                m = re.search(r'(?<=\().*(?=\))', item['monitor_title'])
-                if m:
-                    item['parcel_no'] = m.group()
-
-                # 统一地块编号
-                if 'parcel_no' in content_detail:
-                    m1 = re.search(ur'.+号', item['parcel_no'])
-                    m2 = re.search(ur'.+号', content_detail['parcel_no'])
-                    if m1 and not m2:
-                        s = '%s{%s}' %(item['parcel_no'], content_detail['parcel_no'])
-                        item['parcel_no'] = s
-                        content_detail['parcel_no'] = s
-
-                item['content_detail'] = content_detail
-                yield item
+            e_tables = bs_obj.find_all('table', style='border-collapse:collapse; border-color:#333333;font-size:12px;')
+            l = []
+            for e_table in e_tables:
+                df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+                l.append(df)
+            item['content_detail'] = l
+            yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc().decode('gbk').encode('utf8')))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
     def parse2(self, response):
         """关键词：.*公示.*"""
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'sold'
-        site = bs_obj.find('table', style='border-collapse:collapse; border-color:#333333; font-size:12px;')
-        parcel_data = []
         try:
-            data_frame = pd.read_html(str(site), encoding='utf8')[0] #2
-            data_frame = data_frame.fillna('')  # 替换缺失值
-            arr = numpy.array(data_frame)
-            for i in xrange(1,len(arr)):
-                # 从标题中取出地块编号
-                m = re.search(r'(?<=\().*(?=\))', item['monitor_title'])
-                if m:
-                    item['parcel_no'] = m.group()
-                    
-                content_detail = {'addition': {}}
-                # 将第一行标题跟每一列的数据组成一个字典
-                d0 = dict(arr[[0, i], :].T)
-                for key in d0:
-                    if key in key_dict:
-                        # key_dict[key]将中文键名改成英文的
-                        content_detail[key_dict[key]] = d0[key]
-                    else:
-                        content_detail['addition'][key] = d0[key]
-
-                if 'parcel_no' in content_detail and re.search(ur'土地使用条件|备注', content_detail['parcel_no']):
-                    continue
-
-                # 若有多行数据，则表示一个地块编号下有多块地，需要在取不同的名字
-                # 另外，网页中表格内的地块编号不对，需要更改
-                if len(arr) == 2:
-                    content_detail['parcel_no'] = item['parcel_no']
-                else:
-                    if 'parcel_no' not in content_detail:
-                        content_detail['parcel_no'] = '表格中无地块编号'
-
-                    if re.search(ur'.+号', content_detail['parcel_no']):
-                        item['parcel_no'] = content_detail['parcel_no']
-                    else:
-                        item['parcel_no'] = '%s{%s}' %(item['parcel_no'], content_detail['parcel_no'])
-                        content_detail['parcel_no'] = item['parcel_no']
-
-                item['content_detail'] = content_detail
-                yield item
+            e_table = bs_obj.find('table', style='border-collapse:collapse; border-color:#333333; font-size:12px;')
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
+            yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc().decode('gbk').encode('utf8')))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
 if __name__ == '__main__':

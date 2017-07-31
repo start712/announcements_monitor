@@ -25,7 +25,9 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
+import html_table_reader
 
+html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 with open(os.getcwd() + r'\announcements_monitor\spiders\needed_data.txt', 'r') as f:
@@ -73,8 +75,10 @@ class Spider(scrapy.Spider):
                 item['monitor_url'] = "http://www.quzgt.gov.cn/News/" + e_tds[1].a.get('href')
 
                 if response.url == self.url1:
+                    item['parcel_status'] = 'onsell'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 elif response.url == self.url2:
+                    item['parcel_status'] = 'sold'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2, dont_filter=True)
                 else:
                     yield item
@@ -85,66 +89,24 @@ class Spider(scrapy.Spider):
         """onsell"""
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'onsell'
 
         try:
-            # 在整页范围内找地块编号
-            m = re.search(ur'.市[^市]+?号', bs_obj.get_text())
-            parcel_no = ''
-            if m:
-                parcel_no = m.group()
-
-            e_trs = bs_obj.find_all(lambda tag: tag.name =='tr' and tag.has_attr('style'))[2:]
-            for e_tr in e_trs:
-                e_tds = e_tr.find_all('td')
-                row = [e_td.get_text() for e_td in e_tds]
-                title = title_type1[len(row)]
-
-                content_detail = {'addition': {}}
-                d = dict(zip(title, row))
-                for key in d:
-                    if key in needed_data:
-                        content_detail[key] = d[key]
-                    else:
-                        content_detail['addition'] = d[key]
-
-                if parcel_no and 'parcel_no' in content_detail and not re.search(ur'.市[^市]+?号', content_detail['parcel_no']):
-                    content_detail['parcel_no'] = "%s{%s}" %(parcel_no, content_detail['parcel_no'])
-
-                item['content_detail'] = content_detail
-                yield item
+            e_table = bs_obj.find('table', uetable='null')
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
     def parse2(self, response):
         """sold"""
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'sold'
 
         try:
             e_table = bs_obj.find('table', style='WIDTH: 786px')
-            e_trs = e_table.find_all('tr')[2:]
-
-            for e_tr in e_trs:
-                if not e_tr.get_text(strip=True):
-                    continue
-                e_tds = e_tr.find_all('td')
-                row = [e_td.get_text() for e_td in e_tds]
-                title = title_type2[len(row)]
-
-                content_detail = {'addition':{}}
-                d = dict(zip(title, row))
-                for key in d:
-                    if key in needed_data:
-                        content_detail[key] = d[key]
-                    else:
-                        content_detail['addition'] = d[key]
-
-                content_detail['parcel_no'] = re.sub(ur'\s+', '', re.search(ur'衢.*?号', item['monitor_title']).group())
-                item['content_detail'] = content_detail
-                yield item
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
             yield response.meta['item']

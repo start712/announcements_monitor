@@ -25,7 +25,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 needed_data = ['parcel_no', 'parcel_location', 'offer_area_m2', 'purpose', 'plot_ratio', 'starting_price_sum', 'starting_price']
@@ -63,20 +64,28 @@ class Spider(scrapy.Spider):
                 item['monitor_date'] = e_li.span.get_text(strip=True) # 成交日期 site.xpath('td[3]/text()').extract_first()
                 item['monitor_url'] = "http://www.jhdlr.gov.cn/" + e_li.a.get('href').replace('../../','')
 
-                yield item
+                if response.url in self.urls1:
+                    item['parcel_status'] = 'onsell'
+                    yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1,dont_filter=True)
+                elif response.url in self.urls2:
+                    item['parcel_status'] = 'sold'
+                    yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1,dont_filter=True)
+                else:
+                    yield item
             except:
-                log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+                log_obj.update_error("%s中无法解析\n原因：%s" % (self.name,traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'onsell'
-
-
-    def parse2(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        item = response.meta['item']
-        item['parcel_status'] = 'sold'
+        try:
+            e_table = bs_obj.find("table", class_="MsoNormalTable")
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
+            yield item
+        except:
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            yield response.meta['item']
 
 if __name__ == '__main__':
     pass

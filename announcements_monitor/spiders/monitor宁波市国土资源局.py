@@ -11,6 +11,7 @@ import sys
 import os
 import traceback
 import bs4
+import pandas as pd
 import scrapy
 import announcements_monitor.items
 import re
@@ -21,7 +22,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 # 对应于数据库中字段名的标题
@@ -107,7 +109,7 @@ class Spider(scrapy.Spider):
                 item['monitor_title'] = site[1].find('a', target='_blank').get('title')
                 item['monitor_date'] = site[2].get_text(strip=True)
                 item['monitor_url'] = 'http://www.nblr.gov.cn/' + site[1].find('a', target='_blank').get('href') # 链接
-                item["monitor_content"] = re.sub(r'(\[)|(\])', '', area).encode('utf8')
+                item["monitor_content"] = pd.DataFrame([re.sub(r'(\[)|(\])', '', area).encode('utf8'),])
 
                 if response.url in self.urls1:
                     item['parcel_status'] = 'onsell'
@@ -121,54 +123,16 @@ class Spider(scrapy.Spider):
 
 
     def parse0(self, response):
-        status = {'onsell':'挂牌出让公告', 'sold': '出让结果公告'}
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        area = item["monitor_content"]
 
         try:
-            title_row_count, titles, title_bans= title_structure[status[item['parcel_status']]][area]
-            #item['content_html'] = bs_obj.prettify()
-            sites = bs_obj.find("table", id='table125').table
-
-            # 若标题行数标记为0，则说明有多种网页形式
-            if not title_row_count:
-                raise
-
-            sites = sites.find_all('tr')
-            # 删除标题行
-            sites = sites[title_row_count:]
-
-            for i in xrange(len(sites)):
-                site = sites[i].find_all('td')
-                content_detail = {}
-                for j in xrange(len(titles)):
-                    # 去掉一些不需要的标题
-                    if titles[j] in title_bans:
-                        continue
-                    # 填入对应标题的数据
-                    content_detail[titles[j]] = site[j].get_text(strip=True)
-
-                # 忽略合计行
-                if 'parcel_no' in content_detail and re.sub(r'\s+','',content_detail['parcel_no']) == u'合计':
-                    continue
-
-                m = re.search(ur'余?.土[^土]+号', item['monitor_title'])
-                if m:
-                    if 'parcel_no' in content_detail and content_detail['parcel_no']:
-                        content_detail['parcel_no'] = re.sub(r'\s+','',"%s{%s}" %(m.group(), content_detail['parcel_no']))
-                    else:
-                        content_detail['parcel_no'] = re.sub(r'\s+', '', m.group())
-
-                if 'plot_ratio' in content_detail:
-                    content_detail['addition']['容积率区间'] = re.split(r'[^\d]+', content_detail['plot_ratio'])
-                    content_detail['plot_ratio'] = re.split(r'[^\d]+', content_detail['plot_ratio'])[-1]
-
-                item['content_detail'] = content_detail
-                yield item
+            e_table = bs_obj.find("table", id='table125').table
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
+            yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
-
 if __name__ == '__main__':
     pass

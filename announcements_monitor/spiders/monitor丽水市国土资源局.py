@@ -16,6 +16,7 @@ import traceback
 import datetime
 import bs4
 import json
+import pandas as pd
 
 log_path = r'%s/log/spider_DEBUG(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
 
@@ -28,25 +29,16 @@ import html_table_reader
 html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
+
 with open(os.getcwd() + r'\announcements_monitor\spiders\needed_data.txt', 'r') as f:
     s = f.read()
     needed_data = s.split(',')
 needed_data = [s.encode('utf8') for s in needed_data]
 
 re_text = {
-    'parcel_location':ur'土地坐落：.+?。',
-    'purpose':ur'土地用途：.+?。',
-    '出让年限':ur'出让年限：.+?。'
-}
-
-re_table = {
-    u'土地坐落':'parcel_location',
-    u'地块位置':'parcel_location',
-    u'土地用途':'purpose',
-    u'土地面积':'offer_area_m2',
-    u'容积率':'plot_ratio',
-    u'起始价':'starting_price_sum',
-    u'建筑面积':'building_area'
+    ur'土地坐落：.+?。': 'parcel_location',
+    ur'土地用途：.+?。': 'purpose',
+    ur'出让年限：.+?。': '出让年限'
 }
 
 class Spider(scrapy.Spider):
@@ -86,45 +78,17 @@ class Spider(scrapy.Spider):
         try:
             e_page = bs_obj.find('div', attrs={'id':'infoContent', 'class':'SconC'})
             # 处理网页文字
-            extra_data = False
             e_ps = e_page.find_all('p')
             row_ps = [e_p.get_text(strip=True) for e_p in e_ps]
-            d = {rs:[] for rs in re_text}
-            for row_s in row_ps:
-                for rs in re_text:
-                    m = re.search(re_text[rs], row_s)
-                    if m:
-                        d[rs].append(m.group())
-                        extra_data = True
+            row_ps = [filter(lambda x: re.search(x, s), row_ps) for s in re_text]
+            df0 = pd.DataFrame(row_ps)
+            item['monitor_content'] = df0
 
             # 处理网页中的表格
             e_table = e_page.table
             df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
-            #log_obj.update_error(df.to_string())
-            for k in re_table:
-                df.columns = map(lambda x:re_table[re.search(ur'%s' %k, x).group()] if re.search(ur'%s' %k, x)
-                                 else x, df.columns)
-            log_obj.update_error(df.to_string().encode('utf8'))
-            for i in xrange(len(df.index)):
-                detail = df.iloc[i,:].to_dict()
-                if extra_data:
-                    d0 = {key:d[key][i] for key in d}
-                    detail.update(d0)
-                content_detail = {'addition':{}}
-                for key in detail:
-                    if key in re_table.viewvalues():
-                        content_detail[key] = detail[key]
-                    else:
-                        content_detail['addition'][key] = detail[key]
-
-                item['parcel_no'] = re.search(ur'丽土.+?号', item['monitor_title']).group()
-                if len(df.index) > 1:
-                    if 'parcel_name' not in content_detail:
-                        item['parcel_no'] = item['parcel_no'] + ('|%s|' %i)
-                    else:
-                        item['parcel_no'] = item['parcel_no'] + ('|%s|' % content_detail['parcel_name'])
-                item['content_detail'] = content_detail
-                yield item
+            item['content_detail'] = df
+            yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
             yield response.meta['item']

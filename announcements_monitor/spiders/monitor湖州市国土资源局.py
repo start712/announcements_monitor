@@ -22,7 +22,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 replacement = {u'地块 名称':'parcel_no',
@@ -39,7 +40,7 @@ class Spider(scrapy.Spider):
 
     def start_requests(self):
         self.url1 = "http://www.huzgt.gov.cn/GTInfoMoreList.aspx?ModuleID=203&PageID=3"
-        self.url2 = "http://www.huzgt.gov.cn/GTInfoMoreList.aspx?ModuleID=202&PageID=3"
+        #self.url2 = "http://www.huzgt.gov.cn/GTInfoMoreList.aspx?ModuleID=202&PageID=3"
         yield scrapy.Request(url=self.url1, callback=self.parse)
         yield scrapy.Request(url=self.url2, callback=self.parse)
 
@@ -59,13 +60,11 @@ class Spider(scrapy.Spider):
                 item['monitor_url'] = 'http://www.huzgt.gov.cn/' + e_p.a.get('href') # 链接
 
                 if response.url == self.url1 and re.search(ur'.*拍卖公告.*', item['monitor_title']):
-                    item['monitor_re'] = '.*拍卖公告.*'
+                    item['parcel_status'] = 'onsell'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 elif response.url == self.url1 and re.search(ur'.*拍卖变更公告.*', item['monitor_title']):
-                    item['monitor_re'] = '.*拍卖变更公告.*'
+                    item['parcel_status'] = 'update'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2, dont_filter=True)
-                #elif response.url == self.url2:
-                #    yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse3, dont_filter=True)
                 else:
                     yield item
             except:
@@ -74,69 +73,23 @@ class Spider(scrapy.Spider):
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'onsell'
-        e_table = bs_obj.table
-        while e_table.table:
-            e_table = e_table.table
-
         try:
-            for e_tr in e_table.find_all('tr')[2:]:
-                e_tds = e_tr.find_all('td')
-                content_detail = {
-                    'parcel_no':e_tds[0].get_text(strip=True),
-                    'parcel_location':e_tds[1].get_text(strip=True),
-                    'purpose': e_tds[2].get_text(strip=True),
-                    'offer_area_m2':e_tds[3].get_text(strip=True),
-                    'plot_ratio':e_tds[4].get_text(strip=True),
-                    'starting_price_sum':e_tds[10].get_text(strip=True),
-                    'addition':{
-                        '建筑密度(%)':e_tds[5].get_text(strip=True),
-                        '绿地率(%)':e_tds[6].get_text(strip=True),
-                        '投资强度(≥万元/亩)':e_tds[7].get_text(strip=True),
-                        '投产初始运行期满亩均产值(≥万元/亩)':e_tds[8].get_text(strip=True),
-                        '投产初始运行期满亩均税收(≥万元/亩)':e_tds[9].get_text(strip=True),
-                        '保证金(万元)':e_tds[11].get_text(strip=True)
-                    }
-                }
-                content_detail['plot_ratio'] = re.split(r'-', content_detail['plot_ratio'])[-1]
-                item['content_detail'] = content_detail
-                yield item
+            e_table = bs_obj.table
+            while e_table.table:
+                e_table = e_table.table
+
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
+            yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析:\n%s" %(self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
     def parse2(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'update'
         yield item
-
-    """
-    def parse3(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        item = response.meta['item']
-        item['parcel_status'] = 'sold'
-        e_page = bs_obj.find('td', attrs={'id':'TDContent', 'class':'infodetail'})
-        try:
-            e_table = e_page.find('table', class_='MsoNormalTable')
-            e_trs = e_table.find_all('tr')[1:]
-            for e_tr in e_trs:
-                e_tds = e_tr.find_all('td')[1:]
-                content_detail = {
-                    'parcel_no':e_tds[0].get_text(strip=True),
-                    'offer_area_m2':e_tds[1].get_text(strip=True),
-                    'purpose':e_tds[3].get_text(strip=True),
-                    'transaction_price_sum':e_tds[4].get_text(strip=True),
-                    'competitive_person':e_tds[5].get_text(strip=True),
-                    'addition':{'出让方式':e_tds[2].get_text(strip=True)}
-                }
-                item['content_detail'] = content_detail
-                yield item
-        except:
-            log_obj.error("%s（%s）中无法解析:\n%s\n%s" % (self.name, response.url, e_page, traceback.format_exc()))
-            yield response.meta['item']
-    """
-
+    # 成交公告还没有数据
 
 if __name__ == '__main__':
     pass

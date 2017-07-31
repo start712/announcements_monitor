@@ -21,7 +21,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 class Spider(scrapy.Spider):
@@ -62,9 +63,11 @@ class Spider(scrapy.Spider):
                 item['monitor_url'] = 'http://122.224.205.74:33898/ProArticle/' + site[1].a.get('href') # 链接
 
                 if response.url == self.url1:
+                    item['parcel_status'] = 'onsell'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 elif response.url == self.url2:
-                    yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2, dont_filter=True)
+                    item['parcel_status'] = 'sold'
+                    yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 else:
                     yield item
             except:
@@ -73,53 +76,16 @@ class Spider(scrapy.Spider):
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'onsell'
-        #item['content_html'] = bs_obj.prettify()
-        sites = bs_obj.find("table", class_="MsoNormalTable").find_all('tr', style = 'height:114.7500pt;')
 
         try:
-            for i in xrange(len(sites)):
-                site = sites[i].find_all('td')
-                content_detail =\
-                            {'parcel_no': site[0].get_text(strip=True),
-                             'parcel_location': site[1].get_text(strip=True),
-                             'purpose': site[2].get_text(strip=True),
-                             'offer_area_m2': site[3].get_text(strip=True),
-                             'plot_ratio': site[4].get_text(strip=True),
-                             'addition':{'土地出让年限':site[5].get_text(strip=True)}
-                            }
-                print content_detail
-                item['content_detail'] = content_detail
-                yield item
+            e_table = bs_obj.find("table", class_="MsoNormalTable")
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
+            yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
-    def parse2(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        item = response.meta['item']
-        item['parcel_status'] = 'sold'
-        #item['content_html'] = bs_obj.prettify()
-        sites = bs_obj.find("table", class_="MsoNormalTable").find_all('tr')
-        # 去掉标题
-        sites = [site.find_all('td') for site in sites if sites.index(site) >= 1] #标题高度
-
-        try:
-            for i in xrange(len(sites)):
-                site = sites[i]
-                content_detail =\
-                            {'parcel_no': site[0].get_text(strip=True),
-                            'parcel_location': site[1].get_text(strip=True),
-                            'offer_area_m2': site[2].get_text(strip=True),
-                            'purpose': site[3].get_text(strip=True),
-                            'building_area': site[4].get_text(strip=True)
-                            }
-
-                item['content_detail'] = content_detail
-                yield item
-        except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
-            yield response.meta['item']
 
 if __name__ == '__main__':
     pass

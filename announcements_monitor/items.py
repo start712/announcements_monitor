@@ -22,11 +22,11 @@ class AnnouncementsMonitorItem(scrapy.Item):
     monitor_date = scrapy.Field()
     monitor_url = scrapy.Field()
     monitor_content = scrapy.Field()
-    monitor_re = scrapy.Field()
+    #monitor_re = scrapy.Field()
     monitor_city = scrapy.Field()
     # 土地信息表中的内容
     content_html = scrapy.Field()
     content_detail = scrapy.Field()
-    parcel_no = scrapy.Field()
+    #parcel_no = scrapy.Field()
     parcel_status = scrapy.Field()
 

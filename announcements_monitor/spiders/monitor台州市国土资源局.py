@@ -26,6 +26,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 
 log_obj = spider_log.spider_log() #########
 
@@ -60,15 +62,17 @@ class Spider(scrapy.Spider):
         for e_tr in e_row:
             item = announcements_monitor.items.AnnouncementsMonitorItem()
             item['monitor_city'] = '台州'
-            try: #http://www.zjtzgtj.gov.cn/scxx/tdsc/tdcrgg/2017-06-16/8330.html
+            try:
                 item['monitor_id'] = self.name #/scxx/tdsc/tdcrgg/2016-11-17/6409.html
                 item['monitor_title'] = e_tr.a.get_text(strip=True) # 标题
                 item['monitor_date'] = e_tr.span.get_text(strip=True) # 成交日期 site.xpath('td[3]/text()').extract_first()
                 item['monitor_url'] = "http://www.zjtzgtj.gov.cn" + e_tr.a.get('href')
 
                 if re.search(ur'国有建设用地使用权挂牌出让公告', item['monitor_title']):
+                    item['parcel_status'] = 'onsell'
                     yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse1, dont_filter=True)
                 elif re.search(ur'国有建设用地使用权出让结果公布', item['monitor_title']):
+                    item['parcel_status'] = 'sold'
                     yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse2, dont_filter=True)
                 else:
                     yield item
@@ -78,18 +82,14 @@ class Spider(scrapy.Spider):
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-        item['parcel_status'] = 'onsell'
-
-
-    def parse2(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        item = response.meta['item']
-        item['parcel_status'] = 'sold'
-
-    def parse3(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        item = response.meta['item']
-        item['parcel_status'] = 'update'
+        try:
+            e_table = bs_obj.table
+            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            item['content_detail'] = df
+            yield item
+        except:
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            yield response.meta['item']
 
 if __name__ == '__main__':
     pass
