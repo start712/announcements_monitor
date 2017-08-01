@@ -62,11 +62,11 @@ class Spider(scrapy.Spider):
                 item['monitor_date'] = e_li.find('span', class_='time').get_text(strip=True) # 成交日期
                 item['monitor_url'] = "http://www.linan.gov.cn/gtzyj/gsgg/cjxx/" + e_li.a.get('href')
 
-                if response.text in self.urls1:
+                if response.url in self.urls1:
                     item['parcel_status'] = 'onsell'
-                elif response.text in self.urls2:
+                elif response.url in self.urls2:
                     item['parcel_status'] = 'sold'
-                elif response.text in self.urls3:
+                elif response.url in self.urls3:
                     item['parcel_status'] = 'update'
 
                 yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)

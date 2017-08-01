@@ -79,9 +79,15 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
+            l = []
             e_table = bs_obj.find("table")
-            df = html_table_reader.table_tr_td(e_table)
-            item['content_detail'] = df
+            if e_table.table:
+                e_tables = e_table.find_all('table')
+                for e_t in e_tables:
+                    l.append(html_table_reader.table_tr_td(e_t))
+            else:
+                l.append(html_table_reader.table_tr_td(e_table))
+            item['content_detail'] = l
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
