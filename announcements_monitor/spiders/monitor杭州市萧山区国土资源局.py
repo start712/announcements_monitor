@@ -47,6 +47,7 @@ class Spider(scrapy.Spider):
 
         for site in sites:
             item = announcements_monitor.items.AnnouncementsMonitorItem()
+            item['monitor_city'] = '杭州萧山'
             try:
                 #print dir(site.xpath('td[@align="left"]/a/text()'))
                 item['monitor_id'] = self.name

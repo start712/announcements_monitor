@@ -43,8 +43,8 @@ class Spider(scrapy.Spider):
     name = "511709"
 
     def start_requests(self):
-        self.urls1 = ["http://www.jhdlr.gov.cn/ywgg/news_7_%s.htm" %i for i in xrange(3)]
-        self.urls2 = ["http://www.jhdlr.gov.cn/ywgg/news_8_%s.htm" %i for i in xrange(3)]
+        self.urls1 = ["http://www.jhdlr.gov.cn/ywgg/news_7_%s.htm" %i for i in xrange(2)]
+        self.urls2 = ["http://www.jhdlr.gov.cn/ywgg/news_8_%s.htm" %i for i in xrange(2)]
 
         for url in self.urls1 + self.urls2:
             yield scrapy.Request(url=url, callback=self.parse)

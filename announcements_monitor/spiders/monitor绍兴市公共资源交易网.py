@@ -41,7 +41,6 @@ re_table = {u'地块名称':'parcel_no',
 
 class Spider(scrapy.Spider):
     name = "511706"
-    allowed_domains = ["www.sxztb.gov.cn"]
 
     def start_requests(self):
         self.url1 = "http://www.sxztb.gov.cn/sxweb/tdjy/005006/005006004/005006004001/MoreInfo.aspx?CategoryNum=005006004001"

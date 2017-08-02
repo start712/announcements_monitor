@@ -94,6 +94,7 @@ class Spider(scrapy.Spider):
             e_table = bs_obj.find('table', id='Tbjuti').table
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
+            yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
@@ -107,6 +108,7 @@ class Spider(scrapy.Spider):
             e_table = bs_obj.find('table', style='WIDTH: 786px')
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
+            yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
             yield response.meta['item']

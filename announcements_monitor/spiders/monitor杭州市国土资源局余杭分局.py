@@ -28,11 +28,11 @@ log_obj = spider_log.spider_log() #########
 
 class Spider(scrapy.Spider):
     name = "511699"
-    allowed_domains = ["www.yhland.gov.cn"]
 
     def start_requests(self):
-        url =  ["http://www.yuhang.gov.cn/xxgk/gggs/td/index.html",] + ['http://www.yuhang.gov.cn/xxgk/gggs/td/index_%s.html' % i for i in xrange(2) if i > 0]
-        yield scrapy.Request(url=url, callback=self.parse)
+        urls =  ["http://www.yuhang.gov.cn/xxgk/gggs/td/index.html",] + ['http://www.yuhang.gov.cn/xxgk/gggs/td/index_%s.html' % i for i in xrange(2) if i > 0]
+        for url in urls:
+            yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
@@ -41,20 +41,21 @@ class Spider(scrapy.Spider):
            导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
         try:
             e_table = bs_obj.find('table', class_='ZjYhN018')
-            e_trs = e_table.find_all('tr')
+            e_trs = e_table.find_all('tr', class_='ZjYhN018')
             for e_tr in e_trs:
                 item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '杭州余杭'
                 e_tds = e_tr.find_all('td')
-                e_a = e_tds[1].find_all['a'][-1]
+                e_a = e_tds[1].find_all('a')[-1]
                 item['monitor_id'] = self.name
                 item['monitor_title'] = e_a.get_text(strip=True) # 宗地名称
                 item['monitor_date'] = e_tds[-1].get_text(strip=True) # 成交日期
-                item['monitor_url'] = "http://www.yuhang.gov.cn/xxgk/gggs/td" + e_a.get('href') # 链接
+                item['monitor_url'] = "http://www.yuhang.gov.cn/xxgk/gggs/td/" + re.sub(r'\.\/','',e_a.get('href')) # 链接
 
-                if re.search(ur'权挂牌出让公告', item['monitor_title'].encode('utf8')):
+                if re.search(ur'权挂牌出让公告', item['monitor_title']):
                     item['parcel_status'] = 'onsell'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=False)
-                elif re.search(ur'挂牌结果公示', item['monitor_title'].encode('utf8')):
+                elif re.search(ur'挂牌结果公示', item['monitor_title']):
                     item['parcel_status'] = 'sold'
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=False)
                 else:
@@ -67,7 +68,7 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.find("table", class_="MsoNormalTable")
+            e_table = bs_obj.find("div", class_="TRS_Editor").table
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item

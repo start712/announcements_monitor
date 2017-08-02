@@ -36,7 +36,6 @@ replacement = {u'地块 名称':'parcel_no',
 
 class Spider(scrapy.Spider):
     name = "511707"
-    allowed_domains = ["www.sxztb.gov.cn"]
 
     def start_requests(self):
         self.url1 = "http://www.huzgt.gov.cn/GTInfoMoreList.aspx?ModuleID=203&PageID=3"

@@ -30,7 +30,7 @@ NEWSPIDER_MODULE = 'announcements_monitor.spiders'
 #USER_AGENT = 'announcements_monitor (+http://www.yourdomain.com)'
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # 防止溢出
 SPEED_TOTAL_ITEMS=100

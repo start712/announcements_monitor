@@ -30,8 +30,7 @@ html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
 class Spider(scrapy.Spider):
-    name = "511703" #出让信息
-    allowed_domains = ["www.hzgtj.gov.cn"]
+    name = "511703"
 
     def start_requests(self):
         self.url1 = ["http://www.hzgtj.gov.cn/fore/portal/infos/toList?parentIdStr=1-32-6686-&id=6686",]
@@ -52,6 +51,7 @@ class Spider(scrapy.Spider):
 
         for site in sites:
             item = announcements_monitor.items.AnnouncementsMonitorItem()
+            item['monitor_city'] = '杭州'
             try:
                 item['monitor_id'] = self.name
                 item['monitor_title'] = re.sub(r"[ \s]", "", site.xpath('td[2]/a/@title').extract_first()) # 标题

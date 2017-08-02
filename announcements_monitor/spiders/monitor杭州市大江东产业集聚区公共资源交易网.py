@@ -48,6 +48,7 @@ class Spider(scrapy.Spider):
         for site0 in sites:
             site = site0.find_all('td')
             item = announcements_monitor.items.AnnouncementsMonitorItem()
+            item['monitor_city'] = '杭州大江东'
             try:
                 # 有“政府采购项目”的条目不是需要的数据
                 buyer = site[2].get_text(strip=True) # 采购单位
@@ -76,7 +77,6 @@ class Spider(scrapy.Spider):
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-
         try:
             e_table = bs_obj.find("table", class_="MsoNormalTable")
             df = html_table_reader.table_tr_td(e_table)

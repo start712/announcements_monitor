@@ -41,9 +41,9 @@ class Spider(scrapy.Spider):
 
     def start_requests(self):
         # 临安相应网址的index的系数，index_1代表第二页
-        self.urls1 = ["http://www.linan.gov.cn/gtzyj/gsgg/tdzpgcrgg/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/tdzpgcrgg/index_%s.html" %i for i in xrange(3) if i > 1]
-        self.urls2 = ["http://www.linan.gov.cn/gtzyj/gsgg/tdcrcjgs/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/tdcrcjgs/index_%s.html" %i for i in xrange(3) if i > 1]
-        self.urls3 = ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index_%s.html" % i for i in xrange(3) if i > 1]
+        self.urls1 = ["http://www.linan.gov.cn/gtzyj/gsgg/tdzpgcrgg/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/tdzpgcrgg/index_%s.html" %i for i in xrange(2) if i > 1]
+        self.urls2 = ["http://www.linan.gov.cn/gtzyj/gsgg/tdcrcjgs/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/tdcrcjgs/index_%s.html" %i for i in xrange(2) if i > 1]
+        self.urls3 = ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index_%s.html" % i for i in xrange(2) if i > 1]
         for url in self.urls1 + self.urls2 + self.urls3:
             yield scrapy.Request(url=url, callback=self.parse)
 
@@ -60,14 +60,16 @@ class Spider(scrapy.Spider):
                 item['monitor_id'] = self.name #/scxx/tdsc/tdcrgg/2016-11-17/6409.html
                 item['monitor_title'] = e_li.find('span', class_='event').get_text(strip=True) # 标题
                 item['monitor_date'] = e_li.find('span', class_='time').get_text(strip=True) # 成交日期
-                item['monitor_url'] = "http://www.linan.gov.cn/gtzyj/gsgg/cjxx/" + e_li.a.get('href')
 
                 if response.url in self.urls1:
                     item['parcel_status'] = 'onsell'
+                    item['monitor_url'] = "http://www.linan.gov.cn/gtzyj/gsgg/tdzpgcrgg/" + re.sub(r'\.\/', '',e_li.a.get('href'))
                 elif response.url in self.urls2:
                     item['parcel_status'] = 'sold'
+                    item['monitor_url'] = "http://www.linan.gov.cn/gtzyj/gsgg/tdcrcjgs/" + re.sub(r'\.\/', '',e_li.a.get('href'))
                 elif response.url in self.urls3:
                     item['parcel_status'] = 'update'
+                    item['monitor_url'] = "http://www.linan.gov.cn/gtzyj/gsgg/cjxx/" + re.sub(r'\.\/', '',e_li.a.get('href'))
 
                 yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
             except:
@@ -76,7 +78,6 @@ class Spider(scrapy.Spider):
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-
         try:
             e_table = bs_obj.table
             item['content_detail'] = html_table_reader.table_tr_td(e_table)

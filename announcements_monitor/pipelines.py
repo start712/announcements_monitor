@@ -111,9 +111,9 @@ class AnnouncementsMonitorPipeline(object):
             item["monitor_key"] = "%s/%s/%s" % (item["monitor_id"], item["monitor_date"], item["monitor_title"])
 
             if isinstance(item['content_detail'],list):
-                item['content_detail'] = [df.to_json(force_ascii=False) for df in item['content_detail']]
+                item['content_detail'] = '|start|'.join([df.to_json(force_ascii=False) for df in item['content_detail']])
             elif isinstance(item['content_detail'],pandas.core.frame.DataFrame):
-                item['content_detail'] = [item['content_detail'].to_json(force_ascii=False),]
+                item['content_detail'] = item['content_detail'].to_json(force_ascii=False)
 
             if isinstance(item['monitor_extra'],pandas.core.frame.DataFrame):
                 item['monitor_extra'] = item['monitor_extra'].to_json(force_ascii=False)
@@ -122,7 +122,7 @@ class AnnouncementsMonitorPipeline(object):
             #query.addErrback(self._handle_error,asynItem,spider)#调用异常处理方法
             return item
         except:
-            log_obj.error(u"process item error:%s\n%s\nINFO:%s" %(item["monitor_key"],item['content_detail'],traceback.format_exc()))
+            log_obj.error(u"process item error:%s\nINFO:%s" %(item["monitor_key"],traceback.format_exc()))
 
     #写入数据库中
     def _conditional_insert(self,tx,item):
@@ -131,6 +131,7 @@ class AnnouncementsMonitorPipeline(object):
                   item["monitor_key"], item["monitor_date"], item["monitor_url"], item['content_detail'], item["monitor_extra"])
         try:
             #csv_report.output_data(item, "result", method='a')
+            print (sql,params)
             tx.execute(sql,params)
             if params:
                 logger0.info(u"key saved:%s" % item["monitor_key"])
@@ -141,7 +142,7 @@ class AnnouncementsMonitorPipeline(object):
         except MySQLdb.IntegrityError:
             logger0.info(params)
         except:
-            log_obj.error(u"sql insert failed:%s\nINFO:%s" %(item["monitor_key"],traceback.format_exc()))
+            log_obj.error(u"sql insert failed:%s\n%s\nINFO:%s" %(item["monitor_key"],(sql,params),traceback.format_exc()))
 
 
     #错误处理方法

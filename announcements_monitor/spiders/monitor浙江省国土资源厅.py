@@ -42,17 +42,15 @@ key_dict = {
 
 class Spider(scrapy.Spider):
     name = "511701"
-    allowed_domains = ["www.zjdlr.gov.cn"]
 
     def start_requests(self):
-        urls1 =  ["http://www.zjdlr.gov.cn/col/col1071192/index.html?uid=4228212&pageNum=%s" %i for i in xrange(9) if i > 0]
-        urls2 =  ["http://www.zjdlr.gov.cn/col/col1071194/index.html?uid=4228212&pageNum=%s" %i for i in xrange(9) if i > 0]
+        urls1 =  ["http://www.zjdlr.gov.cn/col/col1071192/index.html?uid=4228212&pageNum=%s" %i for i in xrange(5) if i > 0]
+        urls2 =  ["http://www.zjdlr.gov.cn/col/col1071194/index.html?uid=4228212&pageNum=%s" %i for i in xrange(5) if i > 0]
         for url in urls1 + urls2:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
         """结构不同，使用正则表达式直接读取"""
-        #log_obj.debug(u"准备分析内容：%s" %response.url)
         root_site = "http://www.zjdlr.gov.cn"
         items = []
         rows = re.findall(r"(?<=<record><!\[CDATA\[).*?(?=</record>)", response.text, re.S)
@@ -66,20 +64,17 @@ class Spider(scrapy.Spider):
                     item['monitor_title'] = re.search(r"(?<=title=').*?(?=' target=)", row).group(0) # 出让公告标题
                     item['monitor_date'] = re.search(r'(?<=class="bt_time" style="font-size:16px;border-bottom:dashed 1px #ccc">).*?(?=</td>)', row).group(0) # 发布日期
                     item['monitor_url'] = root_site + re.search(r"(?<=href=').*?(?=' class)", row).group(0) # 链接
-                    item['monitor_content'] = ""
 
                     if re.search(r'.*公告.*', item['monitor_title'].encode('utf8')):
                         item['parcel_status'] = 'onsell'
-                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,
-                                             dont_filter=False)
+                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,dont_filter=True)
                     elif re.search(r'.*公示.*', item['monitor_title'].encode('utf8')):
                         item['parcel_status'] = 'sold'
-                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,
-                                             dont_filter=False)
+                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,dont_filter=True)
                     else:
                         yield item
                 except:
-                    log_obj.update_error("%s中无法解析%s\n原因：%s" % (self.name, e_tr, traceback.format_exc()))
+                    log_obj.update_error("%s中无法解析\n原因：%s" % (self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
@@ -89,7 +84,7 @@ class Spider(scrapy.Spider):
             e_tables = bs_obj.find_all('table', style='border-collapse:collapse; border-color:#333333;font-size:12px;')
             l = []
             for e_table in e_tables:
-                df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+                df = html_table_reader.table_tr_td(e_table)
                 l.append(df)
             item['content_detail'] = l
             yield item

@@ -83,6 +83,8 @@ title_structure = {
 }
 
 class Spider(scrapy.Spider):
+    name = "511705"
+
     def start_requests(self):
         # http://www.nblr.gov.cn/showpage2/pubchief.jsp?type=tdcrgg
         #               http://www.nblr.gov.cn/show3.do?method=getSomeInfo_list&name=gpcrgg&page=

@@ -69,6 +69,7 @@ class Spider(scrapy.Spider):
 
         for site in sites:
             item = announcements_monitor.items.AnnouncementsMonitorItem()
+            item['monitor_city'] = '杭州富阳'
             try:
                 item['monitor_id'] = self.name
                 item['monitor_title'] = site.xpath('a/text()').extract_first()
@@ -95,6 +96,7 @@ class Spider(scrapy.Spider):
             e_table = bs_obj.table
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
+            yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
