@@ -93,7 +93,7 @@ class Spider(scrapy.Spider):
         e_page = bs_obj.find('td', attrs={'id':'TDContent', 'class':'infodetail'})
         try:
             e_table = e_page.find('table', class_='MsoNormalTable')
-            df = html_table_reader.title_standardize(html_table_reader.table_tr_td(e_table), delimiter=r'=>')
+            df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
         except:

@@ -65,12 +65,15 @@ class Spider(scrapy.Spider):
                     item['monitor_date'] = re.search(r'(?<=class="bt_time" style="font-size:16px;border-bottom:dashed 1px #ccc">).*?(?=</td>)', row).group(0) # 发布日期
                     item['monitor_url'] = root_site + re.search(r"(?<=href=').*?(?=' class)", row).group(0) # 链接
 
+                    with open('url.csv', 'a') as f:
+                        f.write(item['monitor_url'] + ',\n')
+
                     if re.search(r'.*公告.*', item['monitor_title'].encode('utf8')):
                         item['parcel_status'] = 'onsell'
-                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,dont_filter=True)
+                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,dont_filter=False)
                     elif re.search(r'.*公示.*', item['monitor_title'].encode('utf8')):
                         item['parcel_status'] = 'sold'
-                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,dont_filter=True)
+                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,dont_filter=False)
                     else:
                         yield item
                 except:
