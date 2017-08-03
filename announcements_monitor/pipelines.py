@@ -33,6 +33,8 @@ import logging
 import logging.handlers
 
 LOG_FILE = r'%s/log/duplicate_entry(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
+csv_file = r'\log\NEW(%s -%s)' %(datetime.datetime.date(datetime.datetime.today()),
+                                 round(datetime.datetime.today().hour + datetime.datetime.today().minute/60))
 
 handler = logging.handlers.RotatingFileHandler(LOG_FILE, maxBytes=1024 * 1024, backupCount=5)  # 实例化handler
 fmt = '%(asctime)s: %(message)s'
@@ -135,7 +137,6 @@ class AnnouncementsMonitorPipeline(object):
             tx.execute(sql,params)
             if params:
                 logger0.info(u"key saved:%s" % item["monitor_key"])
-                csv_file = r'\log\NEW(%s)' %datetime.datetime.date(datetime.datetime.today())
                 title = (u'标题', u'城市', u'状态', u'网址')
                 content = (item["monitor_title"], item["monitor_city"], item['parcel_status'], item["monitor_url"])
                 csv_report.output_data([content,], csv_file, title=title, method = "a")

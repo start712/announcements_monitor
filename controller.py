@@ -28,7 +28,8 @@ log_obj = set_log.Logger('controller.log', set_log.logging.WARNING,
                          set_log.logging.DEBUG)
 log_obj.cleanup('controller.log', if_cleanup=False)  # 是否需要在每次运行程序前清空Log文件
 
-csv_file = os.getcwd() + r'\log\NEW(%s).csv' %datetime.datetime.date(datetime.datetime.today())
+csv_file = os.getcwd() + r'\log\NEW(%s -%s).csv' %(datetime.datetime.date(datetime.datetime.today()),
+                         round(datetime.datetime.today().hour + datetime.datetime.today().minute/60))
 print 'csv_file',csv_file
  #新公告将储存在这个文件中
 
@@ -61,17 +62,16 @@ class controller(object):
                 rows = csv.reader(f)
                 for row in rows:
                     if row:
-                        if re.search(ur'工', row[0]):
+                        if re.search(r'工', row[0]):
                             continue
                         s = s + ",".join(row) + '\n'
-                        if re.search(ur'杭|余', row[0]):
+                        if re.search(r'杭州', row[1]):
                             s0 = s0 + ",".join(row) + '\n'
 
             self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='619978637@qq.com')
             self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s0, to_mail='736941030@qq.com')
             self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='3118734521@qq.com')
-
-            print u"NEW.csv已发送!!!!\n" * 3
+            print (u"%s已发送!!!!\n" %csv_file.split('\\')[-1]) * 3
 
         else:
             print u"没有发现新的内容！\n" * 3
