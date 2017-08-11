@@ -116,6 +116,7 @@ class AnnouncementsMonitorPipeline(object):
                 item['content_detail'] = '|start|'.join([df.to_json(force_ascii=False) for df in item['content_detail']])
             elif isinstance(item['content_detail'],pandas.core.frame.DataFrame):
                 item['content_detail'] = item['content_detail'].to_json(force_ascii=False)
+            item['content_detail'] = re.sub(r'\s+','',item['content_detail'])
 
             if isinstance(item['monitor_extra'],pandas.core.frame.DataFrame):
                 item['monitor_extra'] = item['monitor_extra'].to_json(force_ascii=False)
