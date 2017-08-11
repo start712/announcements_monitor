@@ -98,6 +98,18 @@ class data_cleaner(object):
         df.index = range(len(df.index))  # 索引重新从0计算
         return df
 
+    def table_standardize(self, df, col_count=6):
+        # 表格宽度为偶数列，且第一列的每个单元格中都有：或:
+        fc = df[0]
+        b = fc.apply(lambda x:str(x) if x else ur'：:') #防止有空白
+        b = fc.apply(lambda x:True if re.search(ur'：|:',x) else False)
+        if False in b.value_counts().to_dict():
+            return df
+        else:
+            arr = np.array(df)
+            arr = arr.reshape(-1,2).T
+            return pd.DataFrame(arr)
+
     def blank_row_cleaner(self, df, row='all', num=0, method='<='):
         """
         :param row: 规定检验哪一行，all则全部检验
@@ -107,14 +119,12 @@ class data_cleaner(object):
         """
         # 删除指定行，非空白
         if row=='all':
-            for r in xrange(df.shape[0]-1,-1,-1):
-                ser = df.iloc[r,:].apply(lambda x:x if x else None)
-                b = ser.isnull().value_counts().to_dict()
-                if True not in b:
-                    continue
-                none_count = b[True]
-                if none_count >= df.shape[1] - num:
-                    df = df.drop([r,], axis=0)
+            sers = [df.iloc[r,:].apply(lambda x:x if x else None) for r in xrange(df.shape[0])]
+            # 列表中每个元素都是一个字典，包含原数据每一行中有几个True（空白）
+            b = [ser.isnull().value_counts().to_dict() for ser in sers]
+            b = [b0[True] if True in b else 0 for b0 in b] #显示TRUE的个数，没有则为0
+            r = [i for i in xrange(len(b)) if b[i] >= df.shape[1] - num] # 哪些行符合条件
+            df = df.drop(r, axis=0)
         else:
             ser = df.iloc[row, :].apply(lambda x:x if x else None)
             b = ser.isnull().value_counts().to_dict()

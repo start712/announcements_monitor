@@ -47,7 +47,7 @@ title_replace = {
 # 某一行第一个单元格包含以下内容时，删除整行
 abandon_row = {
     u'杭州': [ur'合\s*计',],
-    u'金华': [ur'土地使用条件：',],
+    u'金华': [ur'土地使用条件：', ur'备注：'],
     u'嘉兴': [u'嘉兴市资源要素交易中心有限公司',],
 }
 # 可能导致正则表达式出错的列
@@ -146,6 +146,7 @@ class DF_reader(object):
         self.new_row('网页数据↓', city)
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
         self.new_row('-' * 150, city)
+
 # 删除\xa0空白符
         if city in [u'杭州余杭', u'丽水']:
             self.new_row(r'删除\xa0空白符↓', city)
@@ -232,7 +233,10 @@ class DF_reader(object):
                 df.index.name = 'parcel_key'
             elif city in [u'金华']:
                 if table_info['status'] == 'sold':
-                    parcel_no0 = re.search(ur'(?<=（).+(?=）)|(?<=\().+(?=\))', table_info['title']).group()
+                    title = table_info['title']
+                    title = re.sub(ur'（', '\(', title)
+                    title = re.sub(ur'）', '\)', title)
+                    parcel_no0 = re.search(ur'(?<=\().+(?=\))', title).group()
                     df.index = city + (parcel_no0 + df['parcel_location']).apply(data_cleaner.str2md5)
                     df.index.name = 'parcel_key'
                 else:
