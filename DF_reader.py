@@ -15,6 +15,7 @@ import pymysql
 import pandas as pd
 import json
 import numpy as np
+import time
 
 import re
 
@@ -43,12 +44,16 @@ title_replace = {
     u'嘉兴':{u'编号':u'地块编号'},
     u'杭州余杭':{u'挂牌出让地块':u'地块编号'},
     u'金华':{u'宗地':u'地块编号',u'编号':u'地块编号'},
+    u'丽水':{u'地块坐落':u'地块名称',u'项目名称':u'地块名称',u'地块位置':u'地块名称',
+           u'土地坐落': u'地块名称',u'土地座落':u'地块名称',}
 }
 # 某一行第一个单元格包含以下内容时，删除整行
 abandon_row = {
     u'杭州': [ur'合\s*计',],
     u'金华': [ur'土地使用条件：', ur'备注：'],
     u'嘉兴': [u'嘉兴市资源要素交易中心有限公司',],
+    u'丽水': [ur'合\s*计',],
+    u'临安': [ur'公示时间',],
 }
 # 可能导致正则表达式出错的列
 abandon_col = {
@@ -85,7 +90,11 @@ class DF_reader(object):
             l = df.loc[r,'detail'].split('|start|')
             table_info = df.loc[r, ['url', 'title', 'status', 'fixture_date']]
             table_info['city'] = city
-            extra_data = df.loc[r, ['extra']]
+            if df.loc[r, 'extra']:
+                extra_data = pd.read_json(df.loc[r, 'extra'])
+                extra_data.index.name = 'extra_data'
+            else:
+                extra_data = pd.DataFrame({})
             for s in l:
                 df0 = pd.read_json(s)
                 # 将表格列的顺序还原
@@ -98,6 +107,7 @@ class DF_reader(object):
                 yield df0, table_info, extra_data
 
     def main(self):
+        start_time = time.time()
         self.initialization() #删除原有的（test）数据
         data = self.get_data()
         onsell_data = pd.DataFrame([])
@@ -134,33 +144,36 @@ class DF_reader(object):
                 log_obj.error('%s,%s' %(city,url))
                 log_obj.error(traceback.format_exc())
 
-            self.new_row('-' * 150, city)
-            self.new_row('', city)
-            self.new_row('', city)
+            self.new_row(' \n ' * 2, city)
+        print "耗时：%smin" %((time.time()-start_time)/60)
 
     def output_data(self, df, table_info, extra_data):
         original_df = df
         city = table_info['city']
 # 输出原始数据
         table_info.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-        self.new_row('网页数据↓', city)
-        df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-        self.new_row('-' * 150, city)
+        if not extra_data.empty:
+            extra_data.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
+        self.new_row('↓↓↓网页数据↓↓↓', city)
+        df.fillna("None").to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
+# 修正竖向标题格式的表格
+        if city in [ur'金华',]:
+            self.new_row(r'修正竖向标题格式的表格↓', city)
+            df = data_cleaner.table_standardize(df)
+            df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
 # 删除\xa0空白符
         if city in [u'杭州余杭', u'丽水']:
             self.new_row(r'删除\xa0空白符↓', city)
             for c in df.columns:
-                df[c] = df[c].apply(lambda x:x.replace(u'\xa0','' if isinstance(x,unicode) else x))
+                df[c] = df[c].apply(lambda x:x.replace(u'\xa0','') if isinstance(x,unicode) else x)
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-            self.new_row('-' * 150, city)
 
 # 删除某些特定不需要的行
         if city in abandon_row:
-            self.new_row('删除包含%s的行↓' %','.join(abandon_row[city]),city)
+            self.new_row('删除包含"%s"的行↓' %','.join(abandon_row[city]),city)
             df = data_cleaner.row_filter(df,abandon_row[city])
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-            self.new_row('-' * 150, city)
 
 # 删除空白行
         if city in [u'杭州富阳',u'嘉兴']:
@@ -168,12 +181,13 @@ class DF_reader(object):
             if city == u'杭州富阳': df = data_cleaner.blank_row_cleaner(df,num=1)
             if city == u'嘉兴': df = data_cleaner.blank_row_cleaner(df, row=0, num=1)
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-            self.new_row('-' * 150, city)
-
 
 # 第一行数据添加为列标题，增加原始数据列
         self.new_row('第一行数据添加为列标题，增加原始数据列↓', city)
         df = data_cleaner.title_standardize(df, fillna_method=None)  # 第一行数据添加为列标题
+        if city in [u'丽水',]:
+            self.new_row('整合额外数据（md5）↓', city)
+            df = df.join(extra_data.iloc[:,np.where(extra_data.columns.isin(df.columns)==False)[0]], how='left')
 # 更换一些奇葩的标题
         if city in title_replace:
             self.new_row('更换一些奇葩的标题↓', city)
@@ -182,27 +196,23 @@ class DF_reader(object):
             df = df.rename(columns=title_replace[city])
         df = data_cleaner.original_data(df) # 增加原始数据列
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-        self.new_row('-' * 150, city)
 
 # 统一单位
         if city in [u'金华',]:
             self.new_row('统一单位↓', city)
             df.update(df[filter(lambda x:re.search(ur'公顷',x), df.columns)].apply(lambda x:x*1000))
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-            self.new_row('-' * 150, city)
 
 # 删除会导致正则表达式出错的列
         if city in abandon_col:
-            self.new_row('删除会导致正则表达式出错的列%s↓' %','.join(abandon_col[city]), city)
+            self.new_row('删除会导致正则表达式出错的列"%s"↓' %','.join(abandon_col[city]), city)
             df = data_cleaner.col_filter(df,abandon_col[city])
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-            self.new_row('-' * 150, city)
 
 #提取所需数据,并修改列标题
         self.new_row('提取所需数据,并修改列标题↓', city)
         df = data_cleaner.data_extract(df) # 提取所需数据
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-        self.new_row('-' * 150, city)
 
 # 修正个别列的数据
         self.new_row('修正个别列的数据↓', city)
@@ -213,26 +223,26 @@ class DF_reader(object):
         df = data_cleaner.col_format(df, 'parcel_no', data_cleaner.parcel_no_cleaner)
         df = data_cleaner.col_format(df, 'plot_ratio', data_cleaner.plot_ratio_cleaner)
         df = data_cleaner.col_format(df, 'building_area', data_cleaner.building_area_cleaner)
-        self.new_row('-' * 150, city)
         df = data_cleaner.col_format(df, 'transaction_price_sum', data_cleaner.num_picker_max)
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-        self.new_row('-' * 150, city)
 
 # 整理数据行中的合并单元格
-        if city in [u'杭州',u'杭州富阳',u'嘉兴', u'金华']:
+        if city in [u'杭州',u'杭州富阳',u'嘉兴', u'金华', u'丽水']:
             self.new_row('整理数据行中的合并单元格↓', city)
             df = data_cleaner.data_standardize(df) # 整理数据行中的合并单元格
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
-            self.new_row('-' * 150, city)
 
 # 设置parcel_key
         self.new_row('设置地块唯一标识，并设置为行标题↓', city)
         try:
-            if city in [u'杭州', u'杭州大江东', u'杭州富阳', u'杭州萧山', u'杭州余杭', u'湖州', u'嘉兴']:
+            if city in [u'杭州', u'杭州大江东', u'杭州富阳', u'杭州萧山', u'杭州余杭', u'湖州', u'嘉兴',
+                        u'临安']:
+                self.new_row('地块编号（md5）↓', city)
                 df.index = city + df['parcel_no'].apply(data_cleaner.str2md5)
                 df.index.name = 'parcel_key'
-            elif city in [u'金华']:
+            elif city in [u'金华',]:
                 if table_info['status'] == 'sold':
+                    self.new_row('标题中地块编号+地块位置（md5）↓', city)
                     title = table_info['title']
                     title = re.sub(ur'（', '\(', title)
                     title = re.sub(ur'）', '\)', title)
@@ -240,8 +250,15 @@ class DF_reader(object):
                     df.index = city + (parcel_no0 + df['parcel_location']).apply(data_cleaner.str2md5)
                     df.index.name = 'parcel_key'
                 else:
+                    self.new_row('标题+地块位置（md5）↓', city)
                     df.index = city + (table_info['title'] + df['parcel_location']).apply(data_cleaner.str2md5)
                     df.index.name = 'parcel_key'
+            elif city in [u'丽水',]:
+                self.new_row('告字号 + 地块名称（md5）↓', city)
+                title = re.search(ur'丽.+号', table_info['title']).group()
+                df.index = city + (title + df['parcel_name']).apply(data_cleaner.str2md5)
+                df.index.name = 'parcel_key'
+
         except:
             self.new_row('赋值parcel_key出错', city)
             self.new_row('赋值parcel_key出错', city)
@@ -250,8 +267,12 @@ class DF_reader(object):
             print traceback.format_exc()
             table_info.to_csv(os.getcwd() + ur'\log\spider_data\问题数据(data_flow).csv', mode='a', encoding='utf_8_sig')
             original_df.to_csv(os.getcwd() + ur'\log\spider_data\问题数据(data_flow).csv', mode='a', encoding='utf_8_sig')
-
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
+
+        if city in [u'丽水',]:
+            self.new_row('整合额外数据（md5）↓', city)
+            df = df.join(extra_data.iloc[:,np.where(extra_data.columns.isin(df.columns)==False)[0]], how='left')
+            df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
 # 将个别列的onsell和sold数据分开
         change_list = ['url',]
@@ -297,7 +318,11 @@ class DF_reader(object):
             pd.Series(['-'*60,]).to_csv(os.getcwd()+r'\log\spider_data\%s.csv' %city, mode='a', encoding='utf_8_sig')
 
     def new_row(self, s, city):
-        pd.Series([s, ]).to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a',
+        pd.Series(['-' * 150, ], index=['',]).to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a',
+                                        encoding='utf_8_sig')
+        pd.Series([s, ], index=['',]).to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a',
+                                        encoding='utf_8_sig')
+        pd.Series(['-' * 150, ], index=['',]).to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a',
                                         encoding='utf_8_sig')
     def initialization(self):
         path = r'C:\Users\lenovo\Desktop\Projects\PythonProgramming\announcements_monitor\log\spider_data'

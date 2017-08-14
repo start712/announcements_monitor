@@ -80,8 +80,9 @@ class Spider(scrapy.Spider):
             # 处理网页文字
             e_ps = e_page.find_all('p')
             row_ps = [e_p.get_text(strip=True) for e_p in e_ps]
-            row_ps = [filter(lambda x: re.search(x, s), row_ps) for s in re_text]
-            df0 = pd.DataFrame(row_ps)
+            d = {re_text[r]:filter(lambda x: re.search(r, x).group() if isinstance(x,unicode) and
+                                  re.search(r, x) else None, row_ps) for r in re_text}
+            df0 = pd.DataFrame(d)
             item['monitor_extra'] = df0
 
             # 处理网页中的表格
