@@ -74,7 +74,8 @@ class controller(object):
             print (u"%s已发送!!!!\n" %csv_file.split('\\')[-1]) * 3
 
         else:
-            print u"没有发现新的内容！\n" * 3
+            self.pymail.try_send_mail(None, "无新公告！！", to_mail='619978637@qq.com')
+            self.pymail.try_send_mail(None, "无新公告！！", to_mail='736941030@qq.com')
 
         # 发送log
         date0 = datetime.datetime.date(datetime.datetime.today() + datetime.timedelta(days=-1))
