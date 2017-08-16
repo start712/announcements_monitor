@@ -88,8 +88,8 @@ class Spider(scrapy.Spider):
     def start_requests(self):
         # http://www.nblr.gov.cn/showpage2/pubchief.jsp?type=tdcrgg
         #               http://www.nblr.gov.cn/show3.do?method=getSomeInfo_list&name=gpcrgg&page=
-        self.urls1 =  ["http://www.nblr.gov.cn/show3.do?method=getSomeInfo_list&name=gpcrgg&page=%s" % i for i in xrange(2) if i > 0]
-        self.urls2 =  ["http://www.nblr.gov.cn/show3.do?method=getSomeInfo_list&name=crjggg&page=%s" % i for i in xrange(2) if i > 0]
+        self.urls1 =  ["http://www.nblr.gov.cn/show3.do?method=getSomeInfo_list&name=gpcrgg&page=%s" % i for i in xrange(3) if i > 0]
+        self.urls2 =  ["http://www.nblr.gov.cn/show3.do?method=getSomeInfo_list&name=crjggg&page=%s" % i for i in xrange(3) if i > 0]
 
         for url in self.urls1 + self.urls2:
             yield scrapy.Request(url=url, callback=self.parse)

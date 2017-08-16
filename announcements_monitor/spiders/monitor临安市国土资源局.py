@@ -43,8 +43,8 @@ class Spider(scrapy.Spider):
         # 临安相应网址的index的系数，index_1代表第二页
         self.urls1 = ["http://www.linan.gov.cn/gtzyj/gsgg/tdzpgcrgg/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/tdzpgcrgg/index_%s.html" %i for i in xrange(2) if i > 1]
         self.urls2 = ["http://www.linan.gov.cn/gtzyj/gsgg/tdcrcjgs/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/tdcrcjgs/index_%s.html" %i for i in xrange(2) if i > 1]
-        self.urls3 = ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index_%s.html" % i for i in xrange(2) if i > 1]
-        for url in self.urls1 + self.urls2 + self.urls3:
+        #self.urls3 = ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index.html", ] + ["http://www.linan.gov.cn/gtzyj/gsgg/cjxx/index_%s.html" % i for i in xrange(2) if i > 1]
+        for url in self.urls1 + self.urls2:# + self.urls3:
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
