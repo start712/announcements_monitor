@@ -82,6 +82,7 @@ class data_cleaner(object):
         arr = np.array(df.columns)[np.where(b)[0]]
         df = df[arr]
         s_arr = np.array(b)[np.where(b)[0]]
+        #print len(df.columns),len(s_arr),len(arr)
         df.columns = [title_re[l[0]] for l in s_arr]
         return df
 
@@ -102,7 +103,8 @@ class data_cleaner(object):
         # 表格宽度为偶数列，且第一列的每个单元格中都有：或:
         fc = df[0]
         b = fc.apply(lambda x:str(x) if x else ur'：:')
-        b = b.apply(lambda x:True if isinstance(x,unicode) and re.search(ur'：|:',x) else False)
+        b = b.apply(lambda x:True if (isinstance(x,unicode) or isinstance(x,str)) and
+                                     (re.search(r'：|:', x) or re.search(ur'：|:', x)) else False)
         if False in b.value_counts().to_dict():
             return df
         else:
