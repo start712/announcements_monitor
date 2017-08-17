@@ -81,7 +81,9 @@ class data_cleaner(object):
         b = [filter(lambda x:re.search(x,s).group() if isinstance(s,unicode) and re.search(x,s) else None, title_re) for s in df.columns]
         arr = np.array(df.columns)[np.where(b)[0]]
         df = df[arr]
+        #print df
         s_arr = np.array(b)[np.where(b)[0]]
+        #print s_arr
         #print len(df.columns),len(s_arr),len(arr)
         df.columns = [title_re[l[0]] for l in s_arr]
         return df

@@ -49,10 +49,11 @@ title_replace = {
     u'宁波(慈溪)':{u'地块编号':u'地块名称',},
     u'宁波(北仑)':{u'面积（平方米）':u'土地面积',},
     u'宁波(奉化)':{u'出让金额(万元）':u'成交价',},
-    u'宁波(象山)':{u'地块':u'地块名称',u'地块编号':u'地块名称',},
+    u'宁波(象山)':{u'地块':u'地块名称',u'地块编号':u'地块名称',u'宗地编号：':u'地块名称',},
     u'宁波(余姚)':{u'起始价=>单价（万元/亩）':u'单价',u'=>总价（万元）':u'起始价',},
+    u'宁波(江北)':{u'出让起始价':u'单价',},
     u'温州':{u'地块编号':u'地块名称',},
-    u'舟山':{u'地块编号':u'地块名称',},
+    u'舟山':{u'宗地坐落：':u'地块名称',u'地块位置':u'地块名称',u'土地位置':u'地块名称',u'规划用途':u'规划',},
 }
 # 某一行第一个单元格符合相应正则表达式时，删除整行
 abandon_row = {
@@ -166,33 +167,39 @@ class DF_reader(object):
             except:
                 log_obj.error('%s,%s' % (city, url))
                 log_obj.error(traceback.format_exc())
-                table_info.to_csv(os.getcwd() + r'\log\spider_data\问题数据(data_flow).csv', mode='a', encoding='utf_8_sig')
-                originaldata.to_csv(os.getcwd() + r'\log\spider_data\问题数据(data_flow).csv', mode='a',encoding='utf_8_sig')
-
-                """
-                if df['city'][0] not in [u'杭州', u'杭州大江东', u'杭州富阳', u'杭州萧山', u'杭州余杭', u'湖州']:
-                    continue
-
-                if df['status'][0] == 'onsell':
-                    onsell_data = onsell_data.append(df)
-                elif df['status'][0] == 'sold':
-                    sold_data = sold_data.append(df)
-                elif df['status'][0] == 'update':
-                    update_data = update_data.append(df)
-
-                onsell_data.to_csv(os.getcwd() + r'\log\spider_data\onsell_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
-                sold_data.to_csv(os.getcwd() + r'\log\spider_data\sold_data(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
-                update_data.to_csv(os.getcwd() + r'\log\spider_data\update_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
-                df = onsell_data
-                df.update(sold_data)
-                df = df.join(sold_data[sold_data.columns[sold_data.columns.isin(onsell_data.columns) == False]], how='left')
-                df.to_csv(os.getcwd() + r'\log\spider_data\df(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
-                onsell_data[onsell_data.columns[onsell_data.columns.isin(sold_data.columns) == False]].to_csv(
-                    os.getcwd() + r'\log\spider_data\匹配不到待售数据的已售数据(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
-                """
-
-
+                table_info.to_csv(os.getcwd() + ur'\log\spider_data\☆问题数据(data_flow).csv', mode='a', encoding='utf_8_sig')
+                originaldata.to_csv(os.getcwd() + ur'\log\spider_data\☆问题数据(data_flow).csv', mode='a',encoding='utf_8_sig')
+                self.new_row(' \n ' * 2, u'☆问题数据')
+                self.new_row(' \n ' * 2, city)
+                continue
             self.new_row(' \n ' * 2, city)
+
+            if re.search(ur'浙江',df['city'][0]):
+                continue
+
+            df.to_csv(os.getcwd() + r'\log\spider_data\data(data_flow).csv'.decode('utf8'), mode='a', encoding='utf_8_sig')
+            if df['status'][0] == 'onsell':
+                onsell_data = onsell_data.append(df)
+            elif df['status'][0] == 'sold':
+                sold_data = sold_data.append(df)
+            elif df['status'][0] == 'update':
+                update_data = update_data.append(df)
+
+            onsell_data.to_csv(os.getcwd() + r'\log\spider_data\onsell_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
+            sold_data.to_csv(os.getcwd() + r'\log\spider_data\sold_data(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
+            update_data.to_csv(os.getcwd() + r'\log\spider_data\update_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
+
+            """
+            df = onsell_data
+            df.update(sold_data)
+            df = df.join(sold_data[sold_data.columns[sold_data.columns.isin(onsell_data.columns) == False]], how='left')
+            df.to_csv(os.getcwd() + r'\log\spider_data\df(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
+            onsell_data[onsell_data.columns[onsell_data.columns.isin(sold_data.columns) == False]].to_csv(
+                os.getcwd() + r'\log\spider_data\匹配不到待售数据的已售数据(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
+            """
+
+
+
         print "耗时：%smin" %((time.time()-start_time)/60)
 
     def output_data(self, df, table_info, extra_data):
@@ -234,8 +241,9 @@ class DF_reader(object):
 # 第一行数据添加为列标题，增加原始数据列
         self.new_row('第一行数据添加为列标题，增加原始数据列↓', city)
         df = data_cleaner.title_standardize(df, fillna_method=None)  # 第一行数据添加为列标题
-        if city in [u'丽水',]:
-            self.new_row('整合额外数据（md5）↓', city)
+# 整合额外数据
+        if city in [u'丽水',] and not extra_data.empty:
+            self.new_row('整合额外数据↓', city)
             df = df.join(extra_data.iloc[:,np.where(extra_data.columns.isin(df.columns)==False)[0]], how='left')
         df = data_cleaner.original_data(df) # 增加原始数据列
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
@@ -321,7 +329,7 @@ class DF_reader(object):
             self.new_row('标题+地块位置（md5）↓', city)
             df.index = city + (table_info['title'] + df['parcel_location']).apply(data_cleaner.str2md5)
         elif city in [u'宁波(北仑)',u'宁波(慈溪)',u'宁波(奉化)',u'宁波(市局)',u'宁波(象山)',u'宁波(镇海)',u'绍兴',
-                      u'温州']:
+                      u'温州',u'宁波(江北)',u'舟山']:
             self.new_row('地块名称（md5）↓', city)
             df.index = city + df['parcel_name'].apply(data_cleaner.str2md5)
         elif city in [u'衢州',]:
@@ -332,10 +340,10 @@ class DF_reader(object):
 
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
-        if city in [u'丽水',]:
-            self.new_row('整合额外数据（md5）↓', city)
-            df = df.join(extra_data.iloc[:,np.where(extra_data.columns.isin(df.columns)==False)[0]], how='left')
-            df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
+        #if city in [u'丽水',]:
+        #    self.new_row('整合额外数据（md5）↓', city)
+        #    df = df.join(extra_data.iloc[:,np.where(extra_data.columns.isin(df.columns)==False)[0]], how='left')
+        #    df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
 # 将个别列的onsell和sold数据分开
         change_list = ['url',]
