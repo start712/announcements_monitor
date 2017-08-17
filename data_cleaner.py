@@ -123,15 +123,16 @@ class data_cleaner(object):
         :return:
         """
         # 删除指定行，非空白
+        func = lambda x:re.sub(ur'\s+',u'',x) if isinstance(x,unicode) or isinstance(x,str) else x
         if row=='all':
-            sers = [df.iloc[r,:].apply(lambda x:x if x else None) for r in xrange(df.shape[0])]
+            sers = [df.iloc[r,:].apply(lambda x:func(x) if func(x) else None) for r in xrange(df.shape[0])]
             # 列表中每个元素都是一个字典，包含原数据每一行中有几个True（空白）
             b = [ser.isnull().value_counts().to_dict() for ser in sers]
-            b = [b0[True] if True in b0 else 0 for b0 in b] #显示TRUE的个数，没有则为0
+            b = [b0[True] if True in b0 else 0 for b0 in b] #显示TRUE的个数，即一行中空白个数，没有则为0
             r = [i for i in xrange(len(b)) if b[i] >= df.shape[1] - num] # 哪些行符合条件
             df = df.drop(r, axis=0)
         else:
-            ser = df.iloc[row, :].apply(lambda x:x if x else None)
+            ser = df.iloc[row, :].apply(lambda x:func(x) if func(x) else None)
             b = ser.isnull().value_counts().to_dict()
             if True in b:
                 none_count = b[True]
@@ -139,7 +140,7 @@ class data_cleaner(object):
                     df = df.drop([row,], axis=0)
                 elif none_count == df.shape[1] - num:
                     df = df.drop([row, ], axis=0)
-        df.index = range(len(df.index))  # 索引重新从0计算
+        df.index = range(df.shape[0])  # 索引重新从0计算
         return df
 
     def original_data(self, df):
