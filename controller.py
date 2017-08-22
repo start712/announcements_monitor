@@ -57,7 +57,6 @@ class controller(object):
         report_file = [csv_file, ]
         if os.path.exists(csv_file):
             s = ""
-            s0 = ''
             with open(report_file[0], 'rb') as f:
                 rows = csv.reader(f)
                 for row in rows:
@@ -65,11 +64,9 @@ class controller(object):
                         if re.search(r'工', row[0]):
                             continue
                         s = s + ",".join(row) + '\n'
-                        if re.search(r'杭州', row[1]):
-                            s0 = s0 + ",".join(row) + '\n'
 
             self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='619978637@qq.com')
-            self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s0, to_mail='736941030@qq.com')
+            self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='736941030@qq.com')
             self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='3118734521@qq.com')
             print (u"%s已发送!!!!\n" %csv_file.split('\\')[-1]) * 3
 
