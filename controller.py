@@ -80,7 +80,7 @@ class controller(object):
             qq_message.send_qq(u"无新公告！！", '2号方泡泡。')
             #self.pymail.try_send_mail(None, "无新公告！！", to_mail='619978637@qq.com')
             #self.pymail.try_send_mail(None, "无新公告！！", to_mail='736941030@qq.com')
-        """
+
         # 发送log
         date0 = datetime.datetime.date(datetime.datetime.today() + datetime.timedelta(days=-1))
         log_file = [
@@ -99,7 +99,7 @@ class controller(object):
             print u'不需要发送log邮件'
         else:
             self.pymail.try_send_mail(None, "爬虫报告%s缺少文件" % date0, to_mail='3118734521@qq.com')
-        """
+
 
 if __name__ == '__main__':
     controller = controller()
