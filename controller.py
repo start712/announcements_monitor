@@ -16,8 +16,9 @@ import re
 import pymail
 import time
 import csv
+import qq_message
 
-
+qq_message = qq_message.qq_message()
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 reload(sys)
@@ -65,15 +66,21 @@ class controller(object):
                             continue
                         s = s + ",".join(row) + '\n'
 
-            self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='619978637@qq.com')
-            self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='736941030@qq.com')
-            self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='3118734521@qq.com')
+            qq_message.send_qq(s, '【工作号】刘')
+            qq_message.send_qq(s, 'Mr.Yao')
+            qq_message.send_qq(s, '2号方泡泡。')
+            #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='619978637@qq.com')
+            #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='736941030@qq.com')
+            #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='3118734521@qq.com')
             print (u"%s已发送!!!!\n" %csv_file.split('\\')[-1]) * 3
 
         else:
-            self.pymail.try_send_mail(None, "无新公告！！", to_mail='619978637@qq.com')
-            self.pymail.try_send_mail(None, "无新公告！！", to_mail='736941030@qq.com')
-
+            qq_message.send_qq(u"无新公告！！", '【工作号】刘')
+            qq_message.send_qq(u"无新公告！！", 'Mr.Yao')
+            qq_message.send_qq(u"无新公告！！", '2号方泡泡。')
+            #self.pymail.try_send_mail(None, "无新公告！！", to_mail='619978637@qq.com')
+            #self.pymail.try_send_mail(None, "无新公告！！", to_mail='736941030@qq.com')
+        """
         # 发送log
         date0 = datetime.datetime.date(datetime.datetime.today() + datetime.timedelta(days=-1))
         log_file = [
@@ -92,7 +99,7 @@ class controller(object):
             print u'不需要发送log邮件'
         else:
             self.pymail.try_send_mail(None, "爬虫报告%s缺少文件" % date0, to_mail='3118734521@qq.com')
-
+        """
 
 if __name__ == '__main__':
     controller = controller()
