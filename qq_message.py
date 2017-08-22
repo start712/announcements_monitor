@@ -61,9 +61,11 @@ class qq_message(object):
         win32gui.SendMessage(qq, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
         win32gui.SendMessage(qq, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
 
+        return True
+
 if __name__ == '__main__':
     # 测试
     qq_message = qq_message()
-    to_who = u'姚俊峰'
+    to_who = u'【工作号】刘'
     msg = u'这是测试消息'
     qq_message.send_qq(to_who, msg)

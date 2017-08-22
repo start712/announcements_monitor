@@ -46,8 +46,9 @@ class controller(object):
 
     def min_run(self):
         # 启动爬虫
+        qq_message.send_qq(u'【工作号】刘',u'开始爬虫作业')
+        time.sleep(1)
         self.start_spider('monitor')
-
         print u'爬虫运行完毕'
 
         self.report()
@@ -66,18 +67,19 @@ class controller(object):
                             continue
                         s = s + ",".join(row) + '\n'
 
-            qq_message.send_qq(s, '【工作号】刘')
-            qq_message.send_qq(s, 'Mr.Yao')
-            qq_message.send_qq(s, '2号方泡泡。')
+            qq_message.send_qq(u'【工作号】刘',s.decode('utf8'))
+            qq_message.send_qq(u'Mr.Yao',s.decode('utf8'))
+            qq_message.send_qq(u'2号方泡泡。',s.decode('utf8'))
+            print u'找到新地块,QQ消息已发送'
             #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='619978637@qq.com')
             #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='736941030@qq.com')
             #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='3118734521@qq.com')
-            print (u"%s已发送!!!!\n" %csv_file.split('\\')[-1]) * 3
+            #print (u"%s已发送!!!!\n" %csv_file.split('\\')[-1]) * 3
 
         else:
-            qq_message.send_qq(u"无新公告！！", '【工作号】刘')
-            qq_message.send_qq(u"无新公告！！", 'Mr.Yao')
-            qq_message.send_qq(u"无新公告！！", '2号方泡泡。')
+            qq_message.send_qq(u'【工作号】刘',u"无新公告！！")
+            qq_message.send_qq(u'Mr.Yao',u"无新公告！！")
+            qq_message.send_qq(u'2号方泡泡。',u"无新公告！！")
             #self.pymail.try_send_mail(None, "无新公告！！", to_mail='619978637@qq.com')
             #self.pymail.try_send_mail(None, "无新公告！！", to_mail='736941030@qq.com')
 
