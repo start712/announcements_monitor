@@ -186,10 +186,10 @@ class data_cleaner(object):
 
     def parcel_no_cleaner(self, s):
         #print s, '------', type(s.decode('utf8')), '--', type(u'')
-        s = str(s)
+        s = str(s).decode('utf8')
         if type(s) == type(u''):
-            r1 = re.compile(ur'[【〔\(（]+')
-            r2 = re.compile(ur'[】〕\)）]+')
+            r1 = re.compile(ur'[【〔\(（﹝]+')
+            r2 = re.compile(ur'[】〕\)）﹞]+')
             s = r1.sub('[', s)
             s = r2.sub(']', s)
         m = re.search(ur'地块$', s)
@@ -237,6 +237,20 @@ class data_cleaner(object):
             return float(max(re.findall(u'\d+[\.]*\d*', s)))
         else:
             return s
+
+    def special_process(self,df,city):
+        if city == u'舟山':
+            if np.all(pd.Series(['starting_price_sum','offer_area_m2']).isin(df.columns)):
+                b = df['starting_price_sum'].apply(lambda x:True if (re.search(ur'楼面地价',x) or
+                                                                    re.search(ur'元/平方米', x) or
+                                                                    re.search(ur'土地单价',x)) and isinstance(x,unicode)
+                                                                 else False)
+                df['starting_price_sum'] = df['starting_price_sum'].str.extract('(\d+\.*\d*)', expand=False).astype(np.float64)
+                df0 = df['starting_price_sum'][b==True] * df['offer_area_m2'].astype(np.float64) / 10000
+                df0.name = 'starting_price_sum'
+                df.update(df0)
+                return df
+        return df
 
 if __name__ == '__main__':
     pass
