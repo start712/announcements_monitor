@@ -67,9 +67,9 @@ class controller(object):
                             continue
                         s = s + ",".join(row) + '\n'
 
-            qq_message.send_qq(u'【工作号】刘',s.decode('utf8'))
-            qq_message.send_qq(u'Mr.Yao',s.decode('utf8'))
-            qq_message.send_qq(u'2号方泡泡。',s.decode('utf8'))
+            qq_message.short_msg(u'【工作号】刘',s.decode('utf8'))
+            qq_message.short_msg(u'Mr.Yao',s.decode('utf8'))
+            qq_message.short_msg(u'2号方泡泡。',s.decode('utf8'))
             print u'找到新地块,QQ消息已发送'
             #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='619978637@qq.com')
             #self.pymail.try_send_mail(report_file, "发现新的公告！！", txt=s, to_mail='736941030@qq.com')
@@ -77,9 +77,9 @@ class controller(object):
             #print (u"%s已发送!!!!\n" %csv_file.split('\\')[-1]) * 3
 
         else:
-            qq_message.send_qq(u'【工作号】刘',u"无新公告！！")
-            qq_message.send_qq(u'Mr.Yao',u"无新公告！！")
-            qq_message.send_qq(u'2号方泡泡。',u"无新公告！！")
+            qq_message.short_msg(u'【工作号】刘',u"无新公告！！")
+            qq_message.short_msg(u'Mr.Yao',u"无新公告！！")
+            qq_message.short_msg(u'2号方泡泡。',u"无新公告！！")
             #self.pymail.try_send_mail(None, "无新公告！！", to_mail='619978637@qq.com')
             #self.pymail.try_send_mail(None, "无新公告！！", to_mail='736941030@qq.com')
 
