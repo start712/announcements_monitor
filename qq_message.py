@@ -59,14 +59,14 @@ class qq_message(object):
         win32gui.SendMessage(qq, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
 
     def short_msg(self, to_who, msg, line_count=35):
-        l = msg.split('\n')
-        for i in xrange(int(math.ceil(len(l)/line_count))):
-            self.send_qq(to_who,u'\n'.join(l[i*line_count,(i+1)*line_count]))
+        l = msg.split(u'\n')
+        for i in xrange(int(math.ceil(float(len(l))/line_count))):
+            self.send_qq(to_who,u'\n'.join(l[i*line_count : (i+1)*line_count]))
             time.sleep(1)
 
 if __name__ == '__main__':
     # 测试
     qq_message = qq_message()
-    to_who = u'【工作号】刘'
-    msg = u'这是测试消息'
-    qq_message.send_qq(to_who, msg)
+    to_who = u'思达特机器人'
+    msg = u'这是测试消息\n' * 100
+    qq_message.short_msg(to_who, msg)
