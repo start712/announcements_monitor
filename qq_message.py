@@ -12,6 +12,8 @@ import os
 import math
 
 import win32gui
+
+import time
 import win32con
 import win32clipboard as clipboard
 
@@ -60,6 +62,7 @@ class qq_message(object):
         l = msg.split('\n')
         for i in xrange(int(math.ceil(len(l)/line_count))):
             self.send_qq(to_who,u'\n'.join(l[i*line_count,(i+1)*line_count]))
+            time.sleep(1)
 
 if __name__ == '__main__':
     # 测试
