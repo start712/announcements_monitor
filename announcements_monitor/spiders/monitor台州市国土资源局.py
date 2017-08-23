@@ -19,6 +19,7 @@ import traceback
 import datetime
 import bs4
 import json
+
 log_path = r'%s/log/spider_DEBUG(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
@@ -27,7 +28,9 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
 import html_table_reader
+import PhantomJS_driver
 html_table_reader = html_table_reader.html_table_reader()
+PhantomJS_driver = PhantomJS_driver.PhantomJS_driver()
 
 log_obj = spider_log.spider_log() #########
 
@@ -54,15 +57,16 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+        bs_obj = bs4.BeautifulSoup(PhantomJS_driver.get_html(response.url), 'html.parser')
         """在使用chrome等浏览器自带的提取extract xpath路径的时候,
             导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
-        e_table = bs_obj.find('div', class_='default_pgContainer')
-        e_row = e_table.find_all('li')
-        for e_tr in e_row:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '台州'
-            try:
+        try:
+            e_table = bs_obj.find('div', class_='default_pgContainer')
+            e_row = e_table.find_all('li')
+            for e_tr in e_row:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '台州'
+
                 item['monitor_id'] = self.name #/scxx/tdsc/tdcrgg/2016-11-17/6409.html
                 item['monitor_title'] = e_tr.a.get_text(strip=True) # 标题
                 item['monitor_date'] = e_tr.span.get_text(strip=True) # 成交日期 site.xpath('td[3]/text()').extract_first()
@@ -76,8 +80,8 @@ class Spider(scrapy.Spider):
                     yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse1, dont_filter=True)
                 else:
                     yield item
-            except:
-                log_obj.update_error("%s中无法解析%s\n原因：%s" %(self.name, e_tr, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s\n%s" %(self.name, traceback.format_exc(),e_table))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
