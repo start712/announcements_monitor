@@ -47,8 +47,8 @@ class Spider(scrapy.Spider):
 
     def start_requests(self):
         # 台州相应网址的index的系数，index_1代表第二页
-        self.urls1 = ["http://www.zjtzgtj.gov.cn/scxx/tdsc/tdcrgg/index.html", ] + ["http://www.zjtzgtj.gov.cn/scxx/tdsc/tdcrgg/index_%s.html" %i for i in xrange(3) if i > 1]
-        self.urls2 = ["http://www.zjtzgtj.gov.cn/scxx/tdsc/tdcrcj/index.html", ] + ["http://www.zjtzgtj.gov.cn/scxx/tdsc/tdcrcj/index_%s.html" %i for i in xrange(3) if i > 1]
+        self.urls1 = ["http://www.zjtzgtj.gov.cn/col/col21069/index.html", ]
+        self.urls2 = ["http://www.zjtzgtj.gov.cn/col/col21070/index.html", ]
 
         for url in self.urls1 + self.urls2:
             yield scrapy.Request(url=url, callback=self.parse)
@@ -57,7 +57,7 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         """在使用chrome等浏览器自带的提取extract xpath路径的时候,
             导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
-        e_table = bs_obj.find('div', class_='txtlist')
+        e_table = bs_obj.find('div', class_='default_pgContainer')
         e_row = e_table.find_all('li')
         for e_tr in e_row:
             item = announcements_monitor.items.AnnouncementsMonitorItem()
@@ -83,7 +83,7 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.table
+            e_table = bs_obj.find('div', id='zoom').table
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             yield item
