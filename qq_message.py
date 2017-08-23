@@ -9,6 +9,7 @@
 """
 import sys
 import os
+import math
 
 import win32gui
 import win32con
@@ -61,7 +62,10 @@ class qq_message(object):
         win32gui.SendMessage(qq, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
         win32gui.SendMessage(qq, win32con.WM_KEYUP, win32con.VK_RETURN, 0)
 
-        return True
+    def short_msg(self, to_who, msg, line_count=35):
+        l = msg.split('\n')
+        for i in xrange(int(math.ceil(len(l)/line_count))):
+            self.send_qq(to_who,u'\n'.join(l[i*line_count,(i+1)*line_count]))
 
 if __name__ == '__main__':
     # 测试
