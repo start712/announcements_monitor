@@ -1,0 +1,28 @@
+{
+  "511700": {
+    "table_tag": "table",
+    "table_attrs": {
+      "class": "MsoNormalTable"
+    },
+    "extra_func": "extra_parse",
+    "extra": {
+      "tag": "div",
+      "attrs": {
+        "class": "Section1"
+      },
+      "row_tag": "p"
+    }
+  },
+  "511703":{
+    "table_tag": "table",
+    "table_attrs": {},
+    "extra_func": "extra_parse",
+    "extra": {
+      "tag": "div",
+      "attrs": {
+        "class": "news_view"
+      },
+      "row_tag": "p"
+    }
+  }
+}
