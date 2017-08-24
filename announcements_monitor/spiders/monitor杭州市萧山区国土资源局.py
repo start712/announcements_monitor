@@ -11,23 +11,24 @@ import sys
 import os
 import traceback
 import bs4
+import pandas as pd
 import scrapy
 import announcements_monitor.items
 import re
 import datetime
+import json
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-import html_table_reader
-html_table_reader = html_table_reader.html_table_reader()
+import spider_func
+spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
 
 class Spider(scrapy.Spider):
     name = "511700"
-    allowed_domains = ["115.236.5.251"]
 
     def start_requests(self):
         self.urls1 = ["http://115.236.5.251/Bulletin/BulletinList.aspx?ProType=13&AfficheType=617&Class=227&ViewID=112",]
@@ -73,13 +74,12 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.find("table", class_="MsoNormalTable")
-            df = html_table_reader.table_tr_td(e_table)
-            item['content_detail'] = df
+            item['content_detail'],item['monitor_extra'] = spider_func.df_output(bs_obj,self.name,item['parcel_status'])
             yield item
         except:
-            log_obj.error("%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
+
 
 if __name__ == '__main__':
     pass
