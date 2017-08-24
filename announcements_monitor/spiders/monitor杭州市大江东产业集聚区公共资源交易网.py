@@ -11,6 +11,7 @@ import sys
 import os
 import traceback
 import bs4
+import pandas as pd
 import scrapy
 import announcements_monitor.items
 import re
@@ -80,11 +81,20 @@ class Spider(scrapy.Spider):
         try:
             e_table = bs_obj.find("table", class_="MsoNormalTable")
             df = html_table_reader.table_tr_td(e_table)
+            if item['parcel_status'] == 'onsell':
+                item['monitor_extra'] = self.extra_parse(bs_obj.find('div',class_='Section0'))
             item['content_detail'] = df
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
+
+    def extra_parse(self, bs_obj):
+        if not bs_obj:
+            return
+        e_ps = bs_obj.find_all('p')
+        s_list = [e_p.get_text(strip=True) for e_p in e_ps if re.search(ur'时间',e_p.get_text(strip=True))]
+        return pd.DataFrame({'date_info': ur'\n'.join(s_list)}, index=[0,])
 
 
 if __name__ == '__main__':
