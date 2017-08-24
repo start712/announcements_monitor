@@ -139,7 +139,7 @@ class AnnouncementsMonitorPipeline(object):
             if params:
                 logger0.info(u"key saved:%s" % item["monitor_key"])
                 #title = (u'标题', u'城市', u'状态', u'网址')
-                content = (item["monitor_title"], item["monitor_city"], item['parcel_status'], item["monitor_url"])
+                content = (item["monitor_city"], item['parcel_status'], item["monitor_title"], item["monitor_url"])
                 csv_report.output_data([content,], csv_file, method = "a")
         except MySQLdb.IntegrityError:
             logger0.info(params)
