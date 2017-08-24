@@ -18,10 +18,6 @@ import hashlib
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 reload(sys)
 sys.setdefaultencoding('utf8')
-import set_log
-log_obj = set_log.Logger('data_cleaner.log', set_log.logging.WARNING,
-                         set_log.logging.DEBUG)
-log_obj.cleanup('data_cleaner.log', if_cleanup=True)  # 是否需要在每次运行程序前清空Log文件
 
 float_col = [u'offer_area_m2', u'building_area', u'starting_price_sum', u'transaction_price_sum', ] # 需要计算的列
 
@@ -149,9 +145,9 @@ class data_cleaner(object):
         for r in df.index:
             try:
                 original_data = df.loc[r,:].to_json(force_ascii=False)
-                df.loc[r, 'original_data'] = original_data
+                df.loc[r, u'original_data'] = original_data
             except:
-                df.loc[r, 'original_data'] = 'wrong_data_format'
+                df.loc[r, u'original_data'] = 'wrong_data_format'
         return df
 
     def str2md5(self, s):

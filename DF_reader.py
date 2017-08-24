@@ -55,7 +55,11 @@ title_replace = {
     u'温州':{u'地块编号':u'地块名称',},
     u'舟山':{u'宗地坐落：':u'地块名称',u'地块位置':u'地块名称',u'土地位置':u'地块名称',u'规划用途':u'规划',},
     u'宁波(市局)':{u'起始价（元/平方米）':u'单价'},
+    u'台州':{u'用地面积(㎡)':u'备用面积',u'用地面积（㎡）':u'备用面积',u'土地面积(㎡)':u'备用面积',u'土地面积（㎡）':u'备用面积'},
+    u'浙江(温州市)':{u'宗地坐落：':u'地块名称',u'地块位置':u'地块名称'},
+    u'浙江(舟山市)':{u'宗地坐落：':u'地块名称',u'地块位置':u'地块名称'},
 }
+
 # 某一行第一个单元格符合相应正则表达式时，删除整行
 abandon_row = {
     u'杭州': [ur'合\s*计',],
@@ -66,6 +70,7 @@ abandon_row = {
     u'衢州': [ur'衢州市国土资源局.+出让结果公布表',ur'合\s*计',],
     u'温州': [ur'合\s*计',],
     u'舟山': [ur'土地使用条件：', ur'备注：'],
+    u'宁波(慈溪)':[ur'合\s*计',],
 }
 # 可能导致正则表达式出错的列
 abandon_col = {
@@ -192,23 +197,28 @@ class DF_reader(object):
                 self.new_row(' \n ' * 2, u'☆问题数据')
                 self.new_row(' \n ' * 2, city)
                 continue
-            self.new_row(' \n ' * 2, city)
 
-            if re.search(ur'浙江',df['city'][0]):
-                continue
+            try:
+                self.new_row(' \n ' * 2, city)
 
-            df.to_csv(os.getcwd() + r'\log\spider_data\data(data_flow).csv'.decode('utf8'), mode='a', encoding='utf_8_sig')
-            if df['status'][0] == 'onsell':
-                onsell_data = onsell_data.append(df)
-            elif df['status'][0] == 'sold':
-                sold_data = sold_data.append(df)
-            elif df['status'][0] == 'update':
-                update_data = update_data.append(df)
+                df.to_csv(os.getcwd() + r'\log\spider_data\data(data_flow).csv'.decode('utf8'), mode='a', encoding='utf_8_sig')
+                if df['status'][0] == 'onsell':
+                    onsell_data = onsell_data.append(df)
+                elif df['status'][0] == 'sold':
+                    sold_data = sold_data.append(df)
+                elif df['status'][0] == 'update':
+                    update_data = update_data.append(df)
+            except:
+                log_obj.error('添加数据出错')
+                log_obj.error('%s,%s' % (city, url))
+                log_obj.error(traceback.format_exc())
 
-            onsell_data.to_csv(os.getcwd() + r'\log\spider_data\onsell_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
-            sold_data.to_csv(os.getcwd() + r'\log\spider_data\sold_data(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
-            update_data.to_csv(os.getcwd() + r'\log\spider_data\update_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
+        onsell_data.to_csv(os.getcwd() + r'\log\spider_data\onsell_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
+        sold_data.to_csv(os.getcwd() + r'\log\spider_data\sold_data(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
+        update_data.to_csv(os.getcwd() + r'\log\spider_data\update_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
 
+        onsell_data = self.remove_duplicated(onsell_data,'onsell_fixture_date')
+        sold_data = self.remove_duplicated(sold_data, 'sold_fixture_date')
         df = onsell_data.copy()
         df.update(sold_data)
         df = df.join(sold_data[sold_data.columns[sold_data.columns.isin(onsell_data.columns) == False]], how='left')
@@ -234,7 +244,7 @@ class DF_reader(object):
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
 # 删除\xa0空白符
-        if city in [u'杭州余杭', u'丽水', u'临安']:
+        if city in [u'杭州余杭', u'丽水', u'临安',u'台州']:
             self.new_row(r'删除\xa0空白符↓', city)
             for c in df.columns:
                 df[c] = df[c].apply(lambda x:x.replace(u'\xa0','') if isinstance(x,unicode) else x)
@@ -294,6 +304,7 @@ class DF_reader(object):
 # 更换一些奇葩的标题
         if city in title_replace:
             self.new_row('更换一些奇葩的标题↓', city)
+            #df.columns = [s.strip() for s in df.columns]
             df = df.rename(columns=title_replace[city])
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
@@ -313,9 +324,9 @@ class DF_reader(object):
         if re.search(ur'浙江', city):
             df = data_cleaner.col_format(df, 'starting_price_sum', data_cleaner.num_picker_first)
             df = data_cleaner.col_format(df, 'offer_area_m2', data_cleaner.num_picker_first)
-        if city in [u'湖州', u'临安',u'衢州', u'宁波(象山)',]:
+        if city in [u'湖州', u'临安',u'衢州', u'宁波(象山)',u'台州']:
             df = data_cleaner.col_format(df, 'starting_price_sum', data_cleaner.num_picker_first)
-        if city in [u'丽水', u'宁波(象山)', u'衢州',u'金华',u'舟山',]:
+        if city in [u'丽水', u'宁波(象山)', u'衢州',u'金华',u'舟山',u'温州',]:
             df = data_cleaner.col_format(df, 'offer_area_m2', data_cleaner.num_picker_first)
         if city in [u'宁波(镇海)']:
             df = data_cleaner.col_format(df, 'parcel_name', lambda x:re.sub(ur'地块$|\s+','',x))
@@ -334,38 +345,42 @@ class DF_reader(object):
 # 设置parcel_key
         self.new_row('设置地块唯一标识，并设置为行标题↓', city)
 
-        if city in [u'宁波(余姚)',] or re.search(u'杭州|湖州|嘉兴', city):
+        if city in [u'宁波(余姚)',u'浙江(宁波市)',u'浙江(绍兴市)'] or re.search(u'杭州|湖州|嘉兴', city):
             self.new_row('地块编号（md5）↓', city)
             df.index = city + df['parcel_no'].apply(data_cleaner.str2md5)
             df['original_key'] = city + df['parcel_no']
         elif re.search(u'金华', city):
             if table_info['status'] == 'onsell' and city == u'金华':
-                self.new_row('标题+地块位置（md5）↓', city)
-                df.index = city + (table_info['title'] + df['parcel_location']).apply(data_cleaner.str2md5)
-                df['original_key'] = city + (table_info['title'] + df['parcel_location'])
+                self.new_row('标题+地块位置+地块面积（md5）↓', city) #offer_area_m2
+                df.index = city + (table_info['title'] + df['parcel_location'] + df['offer_area_m2']).apply(data_cleaner.str2md5)
+                df['original_key'] = city + (table_info['title'] + df['parcel_location'] + df['offer_area_m2'])
             else:
-                self.new_row('标题中地块编号(或者告字号)+地块位置（md5）↓', city)
+                self.new_row('标题中地块编号(或者告字号)+地块位置+地块面积（md5）↓', city)
                 title = table_info['title']
                 title = re.sub(ur'（', '\(', title)
                 title = re.sub(ur'）', '\)', title)
                 parcel_no0 = re.search(ur'(?<=\().+(?=\))', title).group()
-                df.index = city + (parcel_no0 + df['parcel_location']).apply(data_cleaner.str2md5)
-                df['original_key'] = city + (parcel_no0 + df['parcel_location'])
-        elif city in [u'丽水',]:
-            self.new_row('告字号 + 地块名称（md5）↓', city)
-            title = re.search(ur'丽.+号', table_info['title']).group()
-            df.index = city + (title + df['parcel_name']).apply(data_cleaner.str2md5)
-            df['original_key'] = city + (title + df['parcel_name'])
+                df.index = city + (parcel_no0 + df['parcel_location'] + df['offer_area_m2']).apply(data_cleaner.str2md5)
+                df['original_key'] = city + (parcel_no0 + df['parcel_location'] + df['offer_area_m2'])
+        elif re.search(ur'丽水', city):
+            self.new_row('告字号 + 地块面积（md5）↓', city)
+            m = re.search(ur'丽.+号', table_info['title'])
+            if m:
+                title = m.group()
+            else:
+                title = re.search(u'(?<=[\(（]).+(?=[\)）])', table_info['title']).group()
+            df.index = city + (title + df['offer_area_m2'].astype(np.str)).apply(data_cleaner.str2md5)
+            df['original_key'] = city + (title + df['offer_area_m2'].astype(np.str))
         elif city in [u'临安',]:
             self.new_row('标题+地块位置（md5）↓', city)
             df.index = city + (table_info['title'] + df['parcel_location']).apply(data_cleaner.str2md5)
             df['original_key'] = city + (table_info['title'] + df['parcel_location'])
         elif city in [u'宁波(北仑)',u'宁波(慈溪)',u'宁波(奉化)',u'宁波(市局)',u'宁波(象山)',u'宁波(镇海)',u'绍兴',
-                      u'温州',u'宁波(江北)',u'舟山',u'宁波(鄞州)']:
+                      u'温州',u'宁波(江北)',u'舟山',u'宁波(鄞州)',u'浙江(温州市)',u'浙江(舟山市)',]:
             self.new_row('地块名称（md5）↓', city)
-            df.index = city + df['parcel_name'].apply(data_cleaner.str2md5)
+            df.index = city + (df['parcel_name']).apply(data_cleaner.str2md5)
             df['original_key'] = city + df['parcel_name']
-        elif city in [u'衢州',]:
+        elif city in [u'衢州',u'台州',u'浙江(台州市)']:
             self.new_row('地块位置（md5）↓', city)
             df.index = city + (df['parcel_location']).apply(data_cleaner.str2md5)
             df['original_key'] = city + (df['parcel_location'])
@@ -437,6 +452,18 @@ class DF_reader(object):
         l = filter(lambda x:re.search(r'\(data_flow\)',x), l)
         for s in l:
             os.remove(path + r'\\' + s)
+
+    def remove_duplicated(self,df, col):
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col])
+            df = df.sort_values(col, ascending=True)
+
+            b = df.index.duplicated()
+            # 重复项存入csv，返回不重复的
+            self.new_row('以下是%s中的重复数据↓' %col, u'☆重复的数据')
+            df.loc[b == True, :].to_csv(os.getcwd() + ur'\log\spider_data\☆重复的数据(data_flow).csv', mode='a', encoding='utf_8_sig')
+            return df.loc[b==False,:]
+
 
 if __name__ == '__main__':
     DF_reader = DF_reader()
