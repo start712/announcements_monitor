@@ -106,6 +106,31 @@ calculated_col = {
                  u'func': lambda x, y: x * y / 10000}
     }
 }
+# extra_data的date_info中，各个城市读取相应数据的函数
+str2extra = {
+    u'杭州':{u'sales_deadline': lambda s:re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日',re.search(ur'(挂牌报价|竞买申请)时间.*',s).group())[-1]
+                             if re.search(ur'(挂牌报价|竞买申请)时间.*',s) else None,
+            u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
+                             if re.search(ur'[^(挂牌)]报[名价]时间.*', s) else None,
+            },
+    u'杭州余杭': {u'sales_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'(挂牌报价|竞买申请)时间.*', s).group())[-1]
+                                    if re.search(ur'(挂牌报价|竞买申请)时间.*', s) else None,
+                 u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
+                                    if re.search(ur'[^(挂牌)]报[名价]时间.*', s) else None,
+                 },
+    u'杭州大江东': {u'sales_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'(挂牌报价|竞买申请)时间.*', s).group())[-1]
+                                     if re.search(ur'(挂牌报价|竞买申请)时间.*', s) else None,
+                   u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
+                                    if re.search(ur'[^(挂牌)]报[名价]时间.*', s) else None,
+                  },
+    u'杭州富阳': {u'sales_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'(挂牌报价|拍卖出让)时间.*', s).group())[-1]
+                                     if re.search(ur'(挂牌报价|拍卖出让)时间.*', s) else None,
+                  u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
+                                     if re.search(ur'[^(挂牌)]报名(截止)?时间.*', s) else None,
+              },
+
+}
+
 # 各个城市中，标题符合相应正则表达式的列，应用公式
 unit_standard = {
     u'丽水':{ur'亿元':lambda x:x.astype(np.float64)*1000},
@@ -201,7 +226,7 @@ class DF_reader(object):
             try:
                 self.new_row(' \n ' * 2, city)
 
-                df.to_csv(os.getcwd() + r'\log\spider_data\data(data_flow).csv'.decode('utf8'), mode='a', encoding='utf_8_sig')
+                #df.to_csv(os.getcwd() + r'\log\spider_data\data(data_flow).csv'.decode('utf8'), mode='a', encoding='utf_8_sig')
                 if df['status'][0] == 'onsell':
                     onsell_data = onsell_data.append(df)
                 elif df['status'][0] == 'sold':
@@ -274,7 +299,8 @@ class DF_reader(object):
         if city in [u'丽水',] and not extra_data.empty:
             self.new_row('整合额外数据↓', city)
             df = df.join(extra_data.iloc[:,np.where(extra_data.columns.isin(df.columns)==False)[0]], how='left')
-        df = data_cleaner.original_data(df) # 增加原始数据列
+
+        df = data_cleaner.original_data(df)  # 增加原始数据列
         df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
 # 统一单位
@@ -341,6 +367,13 @@ class DF_reader(object):
             self.new_row('整理数据行中的合并单元格↓', city)
             df = data_cleaner.data_standardize(df) # 整理数据行中的合并单元格
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
+
+# 添加网页里的其他相关数据
+        if city in str2extra and not extra_data.empty and 'date_info' in extra_data.columns:
+            self.new_row('添加网页里的其他相关数据↓', city)
+            for key in str2extra[city]:
+                func = str2extra[city][key]
+                df[key] = func(extra_data.loc[0,'date_info'])
 
 # 设置parcel_key
         self.new_row('设置地块唯一标识，并设置为行标题↓', city)
