@@ -22,8 +22,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-import html_table_reader
-html_table_reader = html_table_reader.html_table_reader()
+import spider_func
+spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
 
 # 对应于数据库中字段名的标题
@@ -127,11 +127,8 @@ class Spider(scrapy.Spider):
     def parse0(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
-
         try:
-            e_table = bs_obj.find("table", id='table125').table
-            df = html_table_reader.table_tr_td(e_table)
-            item['content_detail'] = df
+            item['content_detail'],item['monitor_extra'] = spider_func.df_output(bs_obj,self.name,item['parcel_status'])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))

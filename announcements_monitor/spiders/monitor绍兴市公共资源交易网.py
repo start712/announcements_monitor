@@ -24,8 +24,8 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-import html_table_reader
-html_table_reader = html_table_reader.html_table_reader()
+import spider_func
+spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
 
 re_table = {u'地块名称':'parcel_no',
@@ -69,7 +69,7 @@ class Spider(scrapy.Spider):
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 elif response.url == self.url2:
                     item['parcel_status'] = 'sold'
-                    yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2, dont_filter=True)
+                    yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 else:
                     yield item
             except:
@@ -79,26 +79,12 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.find("table", class_="MsoNormalTable")
-            df = html_table_reader.table_tr_td(e_table)
-            item['content_detail'] = df
+            item['content_detail'], item['monitor_extra'] = spider_func.df_output(bs_obj, self.name, item['parcel_status'])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
-    def parse2(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        item = response.meta['item']
-        e_page = bs_obj.find('td', attrs={'id':'TDContent', 'class':'infodetail'})
-        try:
-            e_table = e_page.find('table', class_='MsoNormalTable')
-            df = html_table_reader.table_tr_td(e_table)
-            item['content_detail'] = df
-            yield item
-        except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
-            yield response.meta['item']
 
 if __name__ == '__main__':
     pass

@@ -23,6 +23,8 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
 import html_table_reader
+import spider_func
+spider_func = spider_func.spider_func()
 html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
@@ -41,7 +43,7 @@ class Spider(scrapy.Spider):
         self.url1 = "http://www.huzgt.gov.cn/GTInfoMoreList.aspx?ModuleID=203&PageID=3"
         #self.url2 = "http://www.huzgt.gov.cn/GTInfoMoreList.aspx?ModuleID=202&PageID=3"
         yield scrapy.Request(url=self.url1, callback=self.parse)
-        yield scrapy.Request(url=self.url2, callback=self.parse)
+       #yield scrapy.Request(url=self.url2, callback=self.parse)
 
     def parse(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
@@ -73,15 +75,10 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.table
-            while e_table.table:
-                e_table = e_table.table
-
-            df = html_table_reader.table_tr_td(e_table)
-            item['content_detail'] = df
+            item['content_detail'], item['monitor_extra'] = spider_func.df_output(bs_obj, self.name, item['parcel_status'])
             yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
     def parse2(self, response):

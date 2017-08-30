@@ -27,6 +27,8 @@ sys.setdefaultencoding('utf8')
 import spider_log  ########
 import html_table_reader
 html_table_reader = html_table_reader.html_table_reader()
+import spider_func
+spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
 
 class Spider(scrapy.Spider):
@@ -75,6 +77,10 @@ class Spider(scrapy.Spider):
                 e_table = bs_obj.find('div', align='center').table
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
+            if item['parcel_status'] == 'onsell':
+                item['monitor_extra'] = spider_func.extra_parse(bs_obj,{"tag": "div","attrs": {"class": "TRS_PreAppend"},"row_tag": "p"})
+                if item['monitor_extra'].empty:
+                    item['monitor_extra'] = spider_func.extra_parse(bs_obj, {"tag": "div", "attrs": {"class": "text"}, "row_tag": "p"})
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))

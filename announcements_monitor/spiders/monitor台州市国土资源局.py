@@ -27,9 +27,9 @@ sys.path.append(os.getcwd()) #########
 reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
-import html_table_reader
 import PhantomJS_driver
-html_table_reader = html_table_reader.html_table_reader()
+import spider_func
+spider_func = spider_func.spider_func()
 PhantomJS_driver = PhantomJS_driver.PhantomJS_driver()
 
 log_obj = spider_log.spider_log() #########
@@ -87,12 +87,10 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.find('div', id='zoom').table
-            df = html_table_reader.table_tr_td(e_table)
-            item['content_detail'] = df
+            item['content_detail'], item['monitor_extra'] = spider_func.df_output(bs_obj.find('div', id='zoom'), self.name, item['parcel_status'])
             yield item
         except:
-            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
 if __name__ == '__main__':
