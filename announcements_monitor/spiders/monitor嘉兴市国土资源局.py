@@ -36,8 +36,8 @@ class Spider(scrapy.Spider):
 
     def start_requests(self):
         # 嘉兴相应网址的index的系数，index_1代表第二页
-        self.urls1 = ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdzpgxxgg/index.html", ] + ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdzpgxxgg/index_%s.html" %i for i in xrange(3) if i > 0]
-        self.urls2 = ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdcrjggs/index.html", ] + ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdcrjggs/index_%s.html" % i for i in xrange(3) if i > 0]
+        self.urls1 = ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdzpgxxgg/index.html", ] + ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdzpgxxgg/index_%s.html" %i for i in xrange(2) if i > 0]
+        self.urls2 = ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdcrjggs/index.html", ] + ["http://www.jxgtzy.gov.cn/tdsc/tdgycr/tdcrjggs/index_%s.html" % i for i in xrange(2) if i > 0]
 
         for url in self.urls1 + self.urls2:
             yield scrapy.Request(url=url, callback=self.parse)
@@ -78,9 +78,10 @@ class Spider(scrapy.Spider):
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
             if item['parcel_status'] == 'onsell':
-                item['monitor_extra'] = spider_func.extra_parse(bs_obj,{"tag": "div","attrs": {"class": "TRS_PreAppend"},"row_tag": "p"})
-                if item['monitor_extra'].empty:
-                    item['monitor_extra'] = spider_func.extra_parse(bs_obj, {"tag": "div", "attrs": {"class": "text"}, "row_tag": "p"})
+                try:
+                    item['monitor_extra'] = spider_func.extra_parse(bs_obj,{"tag": "div","attrs": {"class": "TRS_PreAppend"},"row_tag": "p"})
+                except:
+                    item['monitor_extra'] = spider_func.extra_parse(bs_obj, {"tag": "td", "attrs": {"class": "text"}, "row_tag": "p"})
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" %(self.name, response.url, traceback.format_exc()))

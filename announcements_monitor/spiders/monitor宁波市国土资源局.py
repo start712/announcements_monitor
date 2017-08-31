@@ -131,7 +131,10 @@ class Spider(scrapy.Spider):
         try:
             city0 = copy.deepcopy(item['monitor_extra'])
             item['content_detail'],item['monitor_extra'] = spider_func.df_output(bs_obj,self.name,item['parcel_status'])
-            item['monitor_extra']['city0'] = city0
+            if isinstance(item['monitor_extra'], pd.core.frame.DataFrame):
+                item['monitor_extra']['city0'] = city0
+            else:
+                item['monitor_extra'] = pd.DataFrame({"city0":city0}, index=[0,])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
