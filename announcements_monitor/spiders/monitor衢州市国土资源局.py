@@ -89,8 +89,7 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            e_table = bs_obj.find('table', id='Tbjuti').table
-            item['content_detail'], item['monitor_extra'] = spider_func.df_output(e_table, self.name, item['parcel_status'])
+            item['content_detail'], item['monitor_extra'] = spider_func.df_output(bs_obj, self.name, item['parcel_status'])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
@@ -102,10 +101,7 @@ class Spider(scrapy.Spider):
         item = response.meta['item']
 
         try:
-            e_table = bs_obj.find('table', style='WIDTH: 786px')
-            if not e_table:
-                e_table = bs_obj.find('table', id='Tbjuti').table
-            item['content_detail'], item['monitor_extra'] = spider_func.df_output(e_table, self.name, item['parcel_status'])
+            item['content_detail'], item['monitor_extra'] = spider_func.df_output(bs_obj, self.name, item['parcel_status'])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))

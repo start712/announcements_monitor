@@ -33,8 +33,7 @@ log_obj = set_log.Logger('DF_reader.log', set_log.logging.WARNING,
                          set_log.logging.DEBUG)
 log_obj.cleanup('DF_reader.log', if_cleanup=True)  # 是否需要在每次运行程序前清空Log文件
 
-with open('states_belonging.json') as f:
-    states_belonging = json.load(f, encoding='utf8')
+
 
 city_list = [u'杭州',u'宁波',u'绍兴',u'湖州',u'嘉兴',u'金华',u'衢州',u'台州',u'丽水',u'舟山']
 
@@ -107,28 +106,47 @@ calculated_col = {
     }
 }
 # extra_data的date_info中，各个城市读取相应数据的函数
+date_pick = lambda re1,re2,s:re.findall(re1,re.search(re2,s).group())[-1] if re.search(re2,s) else None
 str2extra = {
-    u'杭州':{u'sales_deadline': lambda s:re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日',re.search(ur'(挂牌报价|竞买申请)时间.*',s).group())[-1]
-                             if re.search(ur'(挂牌报价|竞买申请)时间.*',s) else None,
-            u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
-                             if re.search(ur'[^(挂牌)]报[名价]时间.*', s) else None,
+    u'杭州':{u'sales_deadline': lambda s:date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日',ur'(挂牌报价|竞买申请)时间.*',s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'[^(挂牌)]报[名价]时间.*', s)
             },
-    u'杭州余杭': {u'sales_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'(挂牌报价|竞买申请)时间.*', s).group())[-1]
-                                    if re.search(ur'(挂牌报价|竞买申请)时间.*', s) else None,
-                 u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
-                                    if re.search(ur'[^(挂牌)]报[名价]时间.*', s) else None,
+    u'杭州余杭': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日',ur'(挂牌报价|竞买申请)时间.*', s),
+                 u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日',ur'[^(挂牌)]报[名价]时间.*', s)
                  },
-    u'杭州大江东': {u'sales_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'(挂牌报价|竞买申请)时间.*', s).group())[-1]
-                                     if re.search(ur'(挂牌报价|竞买申请)时间.*', s) else None,
-                   u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
-                                    if re.search(ur'[^(挂牌)]报[名价]时间.*', s) else None,
+    u'杭州大江东': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'(挂牌报价|竞买申请)时间.*', s),
+                   u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'[^(挂牌)]报[名价]时间.*', s)
                   },
-    u'杭州富阳': {u'sales_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'(挂牌报价|拍卖出让)时间.*', s).group())[-1]
-                                     if re.search(ur'(挂牌报价|拍卖出让)时间.*', s) else None,
-                  u'offer_deadline': lambda s: re.findall(ur'\d{4}年\d{1,2}月\d{1,2}日', re.search(ur'[^(挂牌)]报[名价]时间.*', s).group())[-1]
-                                     if re.search(ur'[^(挂牌)]报名(截止)?时间.*', s) else None,
+    u'杭州富阳': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'(挂牌报价|拍卖出让)时间.*', s),
+                  u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'[^(挂牌)]报[名价]时间.*', s)
               },
-
+    u'宁波':{u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'[(挂牌报价与现场竞价)(挂牌报价时间)(参加挂牌竞价)(交纳竞买保证金)].*', s),
+             u'sales_deadline':lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'[挂牌报价时间.*', s)
+           },#挂牌报价与现场竞价
+    u'绍兴': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'(挂牌报价|竞买申请)时间.*', s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'[^(挂牌)]报[名价]时间.*', s)
+            },
+    u'湖州':{u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'[^(挂牌)]报[名价]时间.*', s),
+            u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'湖州市国土资源局定于.*', s),
+            },
+    u'嘉兴': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'地块挂牌时间.*', s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'提交书面申请的截止时间.*', s)
+            },
+    u'金华': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'挂牌时间.*', s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'交纳竞买保证金的截止时间.*', s)
+            },
+    u'衢州': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'挂牌时间.*', s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'交纳竞买保证金的截止时间.*', s)
+            },
+    u'台州': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'挂牌时间.*', s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'申请人须交纳竞买保证金，其截止时间.*', s)
+            },
+    u'舟山': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'使用权挂牌时间.*', s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'使用权报价时间.*', s)
+            },
+    u'临安': {u'sales_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'挂牌时间.*', s),
+            u'apply_deadline': lambda s: date_pick(ur'\d{4}年\d{1,2}月\d{1,2}日', ur'保证金交纳截止时间.*', s)
+            },
 }
 
 # 各个城市中，标题符合相应正则表达式的列，应用公式
@@ -157,34 +175,19 @@ class DF_reader(object):
     def originaldata(self, df):
         for r in xrange(len(df.index)):
             city = df.loc[r,'city']
-            if city == u'浙江':
-                title = df.loc[r, 'title']
-                m = re.search(ur'.{2}市|.{2,6}县', title)
-                if m:
-                    city0 = m.group()
-                    if city0 in states_belonging:
-                        city = '%s(%s)' %(city, states_belonging[city0])
-                    elif city0 in states_belonging.values():
-                        city = '%s(%s)' %(city, city0)
-                    else:
-                        city = '%s(-?-%s-?-)' %(city,city0)
-                else:
-                    city = '%s(%s)' %(city,'未知')
-            elif city == u'宁波':
-                if df.loc[r, 'extra']:
-                    city0 = pd.read_json(df.loc[r, 'extra']).iloc[0,0]
-                    city = '%s(%s)' % (city, city0)
-                else:
-                    city = '%s(%s)' % (city, '未知')
 
             l = df.loc[r,'detail'].split('|start|')
             table_info = df.loc[r, ['url', 'title', 'status', 'fixture_date']]
-            table_info['city'] = city
+
             if df.loc[r, 'extra']:
                 extra_data = pd.read_json(df.loc[r, 'extra'])
                 extra_data.index.name = 'extra_data'
             else:
                 extra_data = pd.DataFrame({})
+            if 'city0' in extra_data.columns:
+                city = '%s(%s)' %(city, extra_data.loc[0,'city0'])
+            table_info['city'] = city
+
             for s in l:
                 df0 = pd.read_json(s,encoding='utf8')
                 # 将表格列的顺序还原
@@ -440,23 +443,7 @@ class DF_reader(object):
     def originaldata2csv(self, df):
         for r in xrange(len(df.index)):
             city = df.loc[r,'city']
-            if city == u'浙江':
-                title = df.loc[r, 'title']
-                #print
-                #print title
-                m = re.search(ur'.{2}市|.{2,6}县', title)
-                if m:
-                    city0 = m.group()
-                    #print city0
-                    if city0 in states_belonging:
-                        city = '%s(%s)' %(city, states_belonging[city0])
-                    elif city0 in states_belonging.values():
-                        city = '%s(%s)' %(city, city0)
-                    else:
-                        city = '%s(-?-%s-?-)' %(city,city0)
-                else:
-                    city = '%s(%s)' %(city,'未知')
-                #print city
+
             df.loc[r,['url','city','title','status','extra']].to_csv(os.getcwd()+r'\log\spider_data\%s.csv' %city, mode='a', encoding='utf_8_sig')
             l = df.loc[r,'detail'].split('|start|')
             #print df.loc[r,'url']

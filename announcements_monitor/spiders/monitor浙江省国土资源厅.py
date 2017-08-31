@@ -18,6 +18,7 @@ import announcements_monitor.items
 import re
 import datetime
 import pandas as pd
+import json
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 sys.path.append(os.getcwd()) #########
@@ -27,6 +28,9 @@ import spider_log  ########
 import html_table_reader
 html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
+
+with open('states_belonging.json') as f:
+    states_belonging = json.load(f, encoding='utf8')
 
 key_dict = {
     u'宗地坐落':'parcel_location',
@@ -90,6 +94,7 @@ class Spider(scrapy.Spider):
                 df = html_table_reader.table_tr_td(e_table)
                 l.append(df)
             item['content_detail'] = l
+            item['monitor_extra'] = pd.DataFrame({u"city0": self.get_city0(item['monitor_title'])}, index=[0, ])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
@@ -103,10 +108,26 @@ class Spider(scrapy.Spider):
             e_table = bs_obj.find('table', style='border-collapse:collapse; border-color:#333333; font-size:12px;')
             df = html_table_reader.table_tr_td(e_table)
             item['content_detail'] = df
+            item['monitor_extra'] = pd.DataFrame({u"city0":self.get_city0(item['monitor_title'])}, index=[0,])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
+
+    def get_city0(self, title):
+        m = re.search(ur'.{2}市|.{2,6}县', title)
+
+        if m:
+            city0 = m.group()
+            if city0 in states_belonging:
+                city0 = states_belonging[city0]
+            elif city0 in states_belonging.values():
+                pass
+            else:
+                city0 = u'未知'
+        else:
+            city0 = u'未知'
+        return city0
 
 if __name__ == '__main__':
     pass

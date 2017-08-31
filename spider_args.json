@@ -98,6 +98,7 @@
     "table_tag": "table",
     "table_attrs": {"id":"table125"},
     "extra_func": "extra_parse",
+    "aftertreatment":["next_table"],
     "extra": {
       "tag": "div",
       "attrs": {
@@ -150,11 +151,17 @@
     "city":"衢州",
     "table_tag": "table",
     "table_attrs": {},
+    "pretreatment":["quzhou"],
     "extra_func": "extra_parse",
     "extra": {
       "tag": "table",
-      "attrs": {},
+      "attrs": {"id":"Tbjuti"},
       "row_tag": "p"
     }
-  }
+  },
+  "511701":{
+    "city":"浙江",
+    "table_tag": "table",
+    "table_attrs": {"style":"border-collapse:collapse; border-color:#333333; font-size:12px;"}
+    }
 }

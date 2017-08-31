@@ -11,6 +11,7 @@ import sys
 import os
 import traceback
 import bs4
+import copy
 import pandas as pd
 import scrapy
 import announcements_monitor.items
@@ -111,7 +112,7 @@ class Spider(scrapy.Spider):
                 item['monitor_title'] = site[1].find('a', target='_blank').get('title')
                 item['monitor_date'] = site[2].get_text(strip=True)
                 item['monitor_url'] = 'http://www.nblr.gov.cn/' + site[1].find('a', target='_blank').get('href') # 链接
-                item["monitor_extra"] = pd.DataFrame([re.sub(r'(\[)|(\])', '', area).encode('utf8'),])
+                item["monitor_extra"] = re.sub(r'(\[)|(\])', '', area).encode('utf8')
 
                 if response.url in self.urls1:
                     item['parcel_status'] = 'onsell'
@@ -128,7 +129,9 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
+            city0 = copy.deepcopy(item['monitor_extra'])
             item['content_detail'],item['monitor_extra'] = spider_func.df_output(bs_obj,self.name,item['parcel_status'])
+            item['monitor_extra']['city0'] = city0
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
