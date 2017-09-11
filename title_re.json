@@ -34,5 +34,10 @@
     "竞得价": "transaction_price_sum",
     "容积率": "plot_ratio",
     "original_data": "original_data",
-    "报名及竞": "bidding_info"
+    "报名及竞": "bidding_info",
+    "出让年限":"transfer_term",
+    "绿化率":"afforest_rate",
+    "绿地率":"afforest_rate",
+    "建筑限高":"height_limit",
+    "建筑密度":"building_density"
 }

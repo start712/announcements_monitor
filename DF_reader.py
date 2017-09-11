@@ -7,10 +7,13 @@
     @time: 2017/8/1 11:42
 --------------------------------
 """
+import random
 import sys
 import os
 import traceback
 from contextlib import closing
+
+import datetime
 import pymysql
 import pandas as pd
 import json
@@ -33,7 +36,8 @@ log_obj = set_log.Logger('DF_reader.log', set_log.logging.WARNING,
                          set_log.logging.DEBUG)
 log_obj.cleanup('DF_reader.log', if_cleanup=True)  # 是否需要在每次运行程序前清空Log文件
 
-
+with open('df_rename.json') as f:
+    df_rename = json.load(f, encoding='utf8')
 
 city_list = [u'杭州',u'宁波',u'绍兴',u'湖州',u'嘉兴',u'金华',u'衢州',u'台州',u'丽水',u'舟山']
 
@@ -243,14 +247,15 @@ class DF_reader(object):
 
         onsell_data.to_csv(os.getcwd() + r'\log\spider_data\onsell_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
         sold_data.to_csv(os.getcwd() + r'\log\spider_data\sold_data(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
-        update_data.to_csv(os.getcwd() + r'\log\spider_data\update_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
+        #update_data.to_csv(os.getcwd() + r'\log\spider_data\update_data(data_flow).csv'.decode('utf8'),encoding='utf_8_sig')
 
         onsell_data = self.remove_duplicated(onsell_data,'onsell_fixture_date')
         sold_data = self.remove_duplicated(sold_data, 'sold_fixture_date')
         df = onsell_data.copy()
         df.update(sold_data)
         df = df.join(sold_data[sold_data.columns[sold_data.columns.isin(onsell_data.columns) == False]], how='left')
-        df.to_csv(os.getcwd() + ur'\log\spider_data\☆整合后的数据(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
+
+        df.rename(columns=df_rename).to_csv(os.getcwd() + ur'\log\spider_data\☆整合后的数据(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
         sold_data.loc[sold_data.index.isin(onsell_data.index) == False,:].to_csv(
             os.getcwd() + ur'\log\spider_data\☆无挂牌数据的成交数据(data_flow).csv'.decode('utf8'), encoding='utf_8_sig')
 
@@ -420,6 +425,9 @@ class DF_reader(object):
             self.new_row('地块位置（md5）↓', city)
             df.index = city + (df['parcel_location']).apply(data_cleaner.str2md5)
             df['original_key'] = city + (df['parcel_location'])
+        else:
+            self.new_row('没有设定方法，使用随机数（md5）↓', city)
+            df.index = ['未知'+str(random.randint(10*5,10*6)) for i in xrange(df.shape[0])]
 
         df.index.name = 'parcel_key'
 
@@ -431,6 +439,11 @@ class DF_reader(object):
             df = data_cleaner.special_process(df,city)
             df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
 
+# 修正日期数据
+        if city in [u'嘉兴',]:
+            if re.search(u'\d{2}[-\/]\d{1,2}[-\/]\d{1,2}', table_info['fixture_date']):
+                table_info['fixture_date'] = str(datetime.datetime.now().year)[:2] + table_info['fixture_date']
+
 # 将个别列的onsell和sold数据分开
         change_list = ['url','fixture_date']
         for title in table_info.index:
@@ -438,6 +451,9 @@ class DF_reader(object):
                 df[table_info['status'] + '_' + title] = table_info[title]
             else:
                 df[title] = table_info[title]
+
+        self.new_row('输出结果↓', city)
+        df.to_csv(os.getcwd() + r'\log\spider_data\%s(data_flow).csv' % city, mode='a', encoding='utf_8_sig')
         return df
 
     def originaldata2csv(self, df):
@@ -483,7 +499,6 @@ class DF_reader(object):
             self.new_row('以下是%s中的重复数据↓' %col, u'☆重复的数据')
             df.loc[b == True, :].to_csv(os.getcwd() + ur'\log\spider_data\☆重复的数据(data_flow).csv', mode='a', encoding='utf_8_sig')
             return df.loc[b==False,:]
-
 
 if __name__ == '__main__':
     DF_reader = DF_reader()
