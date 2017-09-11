@@ -26,6 +26,8 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
 import html_table_reader
+import PhantomJS_driver
+PhantomJS_driver = PhantomJS_driver.PhantomJS_driver()
 html_table_reader = html_table_reader.html_table_reader()
 log_obj = spider_log.spider_log() #########
 
@@ -56,32 +58,30 @@ class Spider(scrapy.Spider):
     def parse(self, response):
         """结构不同，使用正则表达式直接读取"""
         root_site = "http://www.zjdlr.gov.cn"
-        items = []
-        rows = re.findall(r"(?<=<record><!\[CDATA\[).*?(?=</record>)", response.text, re.S)
+        bs_obj = bs4.BeautifulSoup(PhantomJS_driver.get_html(response.url), 'html.parser')
+        log_obj.update_error(bs_obj.prettify(encoding='utf8'))
+        #rows = re.findall(r"(?<=<record><!\[CDATA\[).*?(?=</record>)", response.text, re.S)
+        e_tables = bs_obj.find('div', class_='default_pgContainer').find_all('table')[1:]
 
-        for row in rows:
+        for e_table in e_tables:
             item = announcements_monitor.items.AnnouncementsMonitorItem()
             item['monitor_city'] = '浙江'
-            if row:
-                try:
-                    item['monitor_id'] = self.name
-                    item['monitor_title'] = re.search(r"(?<=title=').*?(?=' target=)", row).group(0) # 出让公告标题
-                    item['monitor_date'] = re.search(r'(?<=class="bt_time" style="font-size:16px;border-bottom:dashed 1px #ccc">).*?(?=</td>)', row).group(0) # 发布日期
-                    item['monitor_url'] = root_site + re.search(r"(?<=href=').*?(?=' class)", row).group(0) # 链接
+            try:
+                item['monitor_id'] = self.name
+                item['monitor_title'] = e_table.a.get_text(strip=True) # 出让公告标题
+                item['monitor_date'] = e_table.find('td', class_='bt_time').get_text(strip=True) # 发布日期
+                item['monitor_url'] = root_site + e_table.a.get('href') # 链接
 
-                    with open('url.csv', 'a') as f:
-                        f.write(item['monitor_url'] + ',\n')
-
-                    if re.search(r'.*公告.*', item['monitor_title'].encode('utf8')):
-                        item['parcel_status'] = 'onsell'
-                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,dont_filter=False)
-                    elif re.search(r'.*公示.*', item['monitor_title'].encode('utf8')):
-                        item['parcel_status'] = 'sold'
-                        yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,dont_filter=False)
-                    else:
-                        yield item
-                except:
-                    log_obj.update_error("%s中无法解析\n原因：%s" % (self.name, traceback.format_exc()))
+                if re.search(r'.*公告.*', item['monitor_title'].encode('utf8')):
+                    item['parcel_status'] = 'onsell'
+                    yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1,dont_filter=False)
+                elif re.search(r'.*公示.*', item['monitor_title'].encode('utf8')):
+                    item['parcel_status'] = 'sold'
+                    yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,dont_filter=False)
+                else:
+                    yield item
+            except:
+                log_obj.update_error("%s中无法解析\n原因：%s" % (self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
