@@ -59,7 +59,7 @@ class Spider(scrapy.Spider):
         """结构不同，使用正则表达式直接读取"""
         root_site = "http://www.zjdlr.gov.cn"
         bs_obj = bs4.BeautifulSoup(PhantomJS_driver.get_html(response.url), 'html.parser')
-        log_obj.update_error(bs_obj.prettify(encoding='utf8'))
+        #log_obj.update_error(bs_obj.prettify(encoding='utf8'))
         #rows = re.findall(r"(?<=<record><!\[CDATA\[).*?(?=</record>)", response.text, re.S)
         e_tables = bs_obj.find('div', class_='default_pgContainer').find_all('table')[1:]
 
