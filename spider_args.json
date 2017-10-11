@@ -163,5 +163,36 @@
     "city":"浙江",
     "table_tag": "table",
     "table_attrs": {"style":"border-collapse:collapse; border-color:#333333; font-size:12px;"}
+  },
+  "500000":{
+    "city":"杭州",
+    "table_tag": "table",
+    "table_attrs": {},
+    "pretreatment":["the_last_table"],
+    "extra_func": "extra_parse",
+    "extra": {
+      "tag": "table",
+      "attrs": {},
+      "row_tag": "p"
     }
+  },
+  "500001":{
+    "city":"余杭",
+    "function":["txt_output", "file_output"],
+    "index":{
+      "txt_output":{
+        "tag":"div",
+        "attrs":{"class":"TRS_Editor"}
+      },
+      "file_output":{
+        "tag":"a",
+        "file_type":["rar","zip"]
+      }
+    }
+  },
+  "500003":{
+    "city":"富阳",
+    "table_tag": "table",
+    "table_attrs": {"class":"MsoNormalTable"}
+  }
 }
