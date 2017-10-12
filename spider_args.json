@@ -196,7 +196,7 @@
     "table_attrs": {"class":"MsoNormalTable"}
   },
   "500004":{
-    "city":"浙江",
+    "city":"浙江省住房和城乡建设厅",
     "function":["txt_output", "file_output"],
     "index":{
       "txt_output":{
@@ -208,6 +208,16 @@
         "file_type":["jpg"],
         "func0":"func500004",
         "url0":"http://www.zjjs.gov.cn/"
+      }
+    }
+  },
+  "500005":{
+    "city":"浙江省发展和改革委员会",
+    "function":["txt_output"],
+    "index":{
+      "txt_output":{
+        "tag":"div",
+        "attrs":{"class":"bt_content"}
       }
     }
   }
