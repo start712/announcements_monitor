@@ -43,7 +43,7 @@ class Spider(scrapy.Spider):
     name = "500001"
 
     def start_requests(self):
-        self.urls = ["http://www.fuyang.gov.cn/fy/ghj/jghs/index_%s.jhtml" %i for i in xrange(monitor_page)]
+        self.urls = ['http://www.yuhang.gov.cn/xxgk/gggs/js/',]
         for url in self.urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
@@ -65,7 +65,7 @@ class Spider(scrapy.Spider):
                 e_row = e_table.find_all('tr', class_='ZjYhN018')
                 for e_tr in e_row:
                     item = announcements_monitor.items.AnnouncementsMonitorItem()
-                    item['monitor_city'] = '富阳'
+                    item['monitor_city'] = '余杭'
                     item['parcel_status'] = 'city_planning'
 
                     # 除去标题

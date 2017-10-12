@@ -48,18 +48,19 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
+
+        driver = PhantomJS_driver.initialization()
+        driver.get(response.url)
+        html_list = []
+
+        for i in xrange(monitor_page):
+            html_list.append(bs4.BeautifulSoup(driver.page_source,'html.parser'))
+            driver.find_element_by_xpath("//*[@class='default_pgBtn default_pgNext']").click()
+            time.sleep(1)
+
+        driver.quit()
+
         try:
-            driver = PhantomJS_driver.initialization()
-            driver.get(response.url)
-            html_list = []
-
-            for i in xrange(monitor_page):
-                html_list.append(bs4.BeautifulSoup(driver.page_source,'html.parser'))
-                driver.find_element_by_xpath("//*[@class='default_pgBtn default_pgNext']").click()
-                time.sleep(1)
-
-            driver.quit()
-
             for bs_obj in html_list:
                 e_table = bs_obj.find('div', class_='default_pgContainer')
                 e_row = e_table.find_all('table')
