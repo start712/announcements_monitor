@@ -86,7 +86,7 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            df = spider_func.city_planning(self.name, item['monitor_title'], bs_obj)
+            df =spider_func.city_planning(self.name, item['monitor_city'], item['monitor_title'], bs_obj)
             if df is not None:
                 item['monitor_extra'] = df
                 yield item

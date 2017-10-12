@@ -205,7 +205,9 @@
       },
       "file_output":{
         "tag":"a",
-        "file_type":["rar","zip"]
+        "file_type":["jpg"],
+        "func0":"func500004",
+        "url0":"http://www.zjjs.gov.cn/"
       }
     }
   }

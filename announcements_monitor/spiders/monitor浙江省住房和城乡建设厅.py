@@ -61,7 +61,7 @@ class Spider(scrapy.Spider):
 
         for bs_obj in html_list:
             e_table = bs_obj.find('table', class_='xxgk-table1 table table-border')
-            e_row = e_table.find('tr', class_='xxgk-table1-tr')
+            e_row = e_table.find_all('tr', class_='xxgk-table1-tr')
             for e_tr in e_row:
                 item = announcements_monitor.items.AnnouncementsMonitorItem()
                 item['monitor_city'] = '浙江'
@@ -69,7 +69,7 @@ class Spider(scrapy.Spider):
                 try:
                     e_tds = e_tr.find_all('td')
                     item['monitor_id'] = self.name
-                    item['monitor_title'] = e_tr.a.get_text(strip=True) # 标题
+                    item['monitor_title'] = e_tr.a.get('title') # 标题
                     item['monitor_date'] = e_tds[-1].get_text(strip=True) # 成交日期
                     url = re.sub(r'\.\.\/\.\.\/\.\.\/\.\.\/','', e_tr.a.get('href'))
                     item['monitor_url'] = 'http://www.zjjs.gov.cn/' + url
@@ -82,7 +82,7 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            df = spider_func.city_planning(self.name, item['monitor_title'], bs_obj)
+            df = spider_func.city_planning(self.name, item['monitor_city'], item['monitor_title'], bs_obj)
             if df is not None:
                 item['monitor_extra'] = df
                 yield item

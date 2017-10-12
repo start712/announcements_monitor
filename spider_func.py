@@ -28,6 +28,8 @@ with open(os.getcwd() + r'\spider_args.json') as f:
 
 class spider_func(object):
     def __init__(self):
+        self.func500004 = lambda s:re.sub(r'\.\.\/' * 5,'', s)
+
         with open(os.getcwd() + r'\spider_args.json') as f:
             self.spider_args = json.load(f, encoding='utf8')
 
@@ -106,37 +108,50 @@ class spider_func(object):
 
 ####################################以下是规划部分##################################
 
-    def city_planning(self, spider_id, title, bs_obj, **kwargs):
-        file_path = os.getcwd() + r'\\files\\'
+    def city_planning(self, spider_id, city, title, bs_obj, **kwargs):
+        dir_path = os.path.join(os.getcwd() + '\\files\\')
         spider_args = self.spider_args[spider_id]
-        file_list = [os.path.splitext(s)[0] for s in os.listdir(file_path)]
-        file_set = set(file_list)
+        with open(dir_path + '-file_dir.txt','r') as f:
+            s = f.read()
 
-        #print "==================>", file_path, file_set, title
-        if title not in file_set:
+        file_list = s.split('\n')
+
+        #print "==================>", dir_path, file_set, title
+        if title not in file_list:
             bs_obj = copy.deepcopy(bs_obj)
             l = []
-            for func0 in spider_args['function']:
-                func = getattr(self, func0)
-                index0 = spider_args['index'][func0]
-                #print "----------------------------func:", func0, index0
-                l.extend(func(file_path, title, bs_obj, index0))
+            for func_name in spider_args['function']:
+                func = getattr(self, func_name)
+                index0 = spider_args['index'][func_name]
+                print "----------------------------func:", func_name, dir_path, index0
+                res = func(dir_path, city, title, bs_obj, index0)
+                print "==>",res
+                if res:
+                    l.extend(res)
+
+            # 写入文件目录中
+            with open(dir_path + '-file_dir.txt', 'a') as f:
+                f.write("%s_%s\n" %(city,title))
+
             return pd.DataFrame({'文件名':l}, index=["文件%s" %i for i in xrange(len(l))])
 
-    def txt_output(self, file_path, title, bs_obj, index0):
+    def txt_output(self, dir_path, city, title, bs_obj, index0):
         e = bs_obj.find(index0['tag'], attrs=index0['attrs'])
         if e:
-            with open(file_path + title + '.txt', 'wb') as f:
+            f_path = "%s%s_%s.txt" %(dir_path ,city, title)
+            with open(f_path, 'wb') as f:
                 f.write(e.get_text())
             return [title + '.txt',]
 
-    def file_output(self, file_path, title, bs_obj, index0):
+    def file_output(self, dir_path, city, title, bs_obj, index0):
         es = bs_obj.find_all(index0['tag'])
         comp = re.compile('|'.join([r'\.%s$' %s for s in index0['file_type']])) # 找出所有以 \.+格式 结尾的超级链接
         file_types = {comp.search(e.get('href')).group():e for e in es if comp.search(e.get('href'))}
+        print "===========>", file_types
         if file_types:
             l = []
-            for e0 in file_types:
+            for s in file_types:
+                e0 = file_types[s]
                 file_url = e0.get('href')
 
                 # 网址需要修改的情况
@@ -146,20 +161,21 @@ class spider_func(object):
                 if 'url0' in index0:
                     file_url = index0['url0'] + file_url
 
-                PhantomJS_driver.get_file(file_url, file_path + title + e0.get_text(strip=True))
-                l.append(title + e0.get_text(strip=True))
+                print '=============>', file_url
+                PhantomJS_driver.get_file(file_url, dir_path + title + e0.get_text(strip=True) + s)
+                l.append("%s_%s_%s%s" %(city, title, e0.get_text(strip=True), s))
             return l
 
 
 
-
-    def file_output1(self, file_path, title, bs_obj, index0):
+"""
+    def file_output1(self, dir_path, title, bs_obj, index0):
         e_a = bs_obj.find(index0['tag'], text=re.compile('|'.join([r'\.%s' %s for s in index0['file_type']]))) #r"\.rar|\.zip"
         if e_a:
-            PhantomJS_driver.get_file(e_a.get('href'), file_path + title + e_a.get_text(strip=True))
+            PhantomJS_driver.get_file(e_a.get('href'), dir_path + title + e_a.get_text(strip=True))
             return [title + e_a.get_text(strip=True),]
 
-
+"""
 
 
 

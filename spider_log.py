@@ -30,6 +30,7 @@ class spider_log(object):
         pass
 
     def error(self, url, s):
+        com.delete_all()
         if com.check_url(url):
             print url, u'已经存在于网址数据库SQLite中'
         else:
