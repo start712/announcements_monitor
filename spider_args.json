@@ -220,5 +220,15 @@
         "attrs":{"class":"bt_content"}
       }
     }
+  },
+  "500006":{
+    "city":"中华人民共和国国家发展和改革委员会 ",
+    "function":["txt_output"],
+    "index":{
+      "txt_output":{
+        "tag":"div",
+        "attrs":{"id":"zoom"}
+      }
+    }
   }
 }

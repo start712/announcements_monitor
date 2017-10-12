@@ -111,7 +111,7 @@ class spider_func(object):
     def city_planning(self, spider_id, city, title, bs_obj, **kwargs):
         dir_path = os.path.join(os.getcwd() + '\\files\\')
         spider_args = self.spider_args[spider_id]
-        with open(dir_path + '-file_dir.txt','r') as f:
+        with open(dir_path + '-file_dir.log','r') as f:
             s = f.read()
 
         file_list = s.split('\n')
@@ -130,7 +130,7 @@ class spider_func(object):
                     l.extend(res)
 
             # 写入文件目录中
-            with open(dir_path + '-file_dir.txt', 'a') as f:
+            with open(dir_path + '-file_dir.log', 'a') as f:
                 f.write("%s_%s\n" %(city,title))
 
             return pd.DataFrame({'文件名':l}, index=["文件%s" %i for i in xrange(len(l))])
