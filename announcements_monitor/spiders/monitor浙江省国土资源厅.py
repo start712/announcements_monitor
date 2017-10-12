@@ -56,17 +56,18 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        """结构不同，使用正则表达式直接读取"""
-        root_site = "http://www.zjdlr.gov.cn"
-        bs_obj = bs4.BeautifulSoup(PhantomJS_driver.get_html(response.url), 'html.parser')
-        #log_obj.update_error(bs_obj.prettify(encoding='utf8'))
-        #rows = re.findall(r"(?<=<record><!\[CDATA\[).*?(?=</record>)", response.text, re.S)
-        e_tables = bs_obj.find('div', class_='default_pgContainer').find_all('table')[1:]
+        try:
+            """结构不同，使用正则表达式直接读取"""
+            root_site = "http://www.zjdlr.gov.cn"
+            bs_obj = bs4.BeautifulSoup(PhantomJS_driver.get_html(response.url), 'html.parser')
+            #log_obj.update_error(bs_obj.prettify(encoding='utf8'))
+            #rows = re.findall(r"(?<=<record><!\[CDATA\[).*?(?=</record>)", response.text, re.S)
+            e_tables = bs_obj.find('div', class_='default_pgContainer').find_all('table')[1:]
 
-        for e_table in e_tables:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '浙江'
-            try:
+            for e_table in e_tables:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '浙江'
+
                 item['monitor_id'] = self.name
                 item['monitor_title'] = e_table.a.get_text(strip=True) # 出让公告标题
                 item['monitor_date'] = e_table.find('td', class_='bt_time').get_text(strip=True) # 发布日期
@@ -80,8 +81,8 @@ class Spider(scrapy.Spider):
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse2,dont_filter=False)
                 else:
                     yield item
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s" % (self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" % (self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

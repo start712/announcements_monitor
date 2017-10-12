@@ -48,25 +48,26 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        driver = PhantomJS_driver.initialization()
-        driver.get(response.url)
-        html_list = []
+        try:
+            driver = PhantomJS_driver.initialization()
+            driver.get(response.url)
+            html_list = []
 
-        for i in xrange(monitor_page):
-            html_list.append(bs4.BeautifulSoup(driver.page_source,'html.parser'))
-            driver.find_element_by_xpath("//*[@class='default_pgBtn default_pgNext']").click()
-            time.sleep(1)
+            for i in xrange(monitor_page):
+                html_list.append(bs4.BeautifulSoup(driver.page_source,'html.parser'))
+                driver.find_element_by_xpath("//*[@class='default_pgBtn default_pgNext']").click()
+                time.sleep(1)
 
-        driver.quit()
+            driver.quit()
 
-        for bs_obj in html_list:
-            e_table = bs_obj.find('div', class_='default_pgContainer')
-            e_row = e_table.find_all('table')
-            for e in e_row:
-                item = announcements_monitor.items.AnnouncementsMonitorItem()
-                item['monitor_city'] = '浙江'
-                item['parcel_status'] = 'city_planning'
-                try:
+            for bs_obj in html_list:
+                e_table = bs_obj.find('div', class_='default_pgContainer')
+                e_row = e_table.find_all('table')
+                for e in e_row:
+                    item = announcements_monitor.items.AnnouncementsMonitorItem()
+                    item['monitor_city'] = '浙江'
+                    item['parcel_status'] = 'city_planning'
+
                     e_a = e.a
                     item['monitor_id'] = self.name
                     item['monitor_title'] = e_a.get('title') # 标题
@@ -74,8 +75,8 @@ class Spider(scrapy.Spider):
                     item['monitor_url'] = 'http://www.zjdpc.gov.cn' + e_a.get('href')
 
                     yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
-                except:
-                    log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

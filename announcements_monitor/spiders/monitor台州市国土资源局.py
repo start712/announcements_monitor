@@ -57,10 +57,11 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(PhantomJS_driver.get_html(response.url), 'html.parser')
-        """在使用chrome等浏览器自带的提取extract xpath路径的时候,
-            导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
         try:
+            bs_obj = bs4.BeautifulSoup(PhantomJS_driver.get_html(response.url), 'html.parser')
+            """在使用chrome等浏览器自带的提取extract xpath路径的时候,
+                导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
+
             e_table = bs_obj.find('div', class_='default_pgContainer')
             e_row = e_table.find_all('li')
             for e_tr in e_row:

@@ -48,22 +48,23 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        e_ul = bs_obj.find('div', class_='neirong_detail')
-        e_lis = e_ul.find_all('li')
-        for e_li in e_lis:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '富阳'
-            item['parcel_status'] = 'city_planning'
-            try:
+        try:
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            e_ul = bs_obj.find('div', class_='neirong_detail')
+            e_lis = e_ul.find_all('li')
+            for e_li in e_lis:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '富阳'
+                item['parcel_status'] = 'city_planning'
+
                 item['monitor_id'] = self.name
                 item['monitor_title'] = u'建设项目规划竣工核实' + e_li.a.get_text(strip=True) # 标题
                 item['monitor_date'] = e_li.find('span', class_='time').get_text(strip=True) # 成交日期
                 item['monitor_url'] = e_li.a.get('href')
 
                 yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

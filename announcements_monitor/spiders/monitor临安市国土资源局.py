@@ -48,15 +48,15 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        """在使用chrome等浏览器自带的提取extract xpath路径的时候,
-            导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
-        e_table = bs_obj.find('div', class_='list_con')
-        e_row = e_table.find_all('li')
-        for e_li in e_row:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '临安'
-            try:
+        try:
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            """在使用chrome等浏览器自带的提取extract xpath路径的时候,
+                导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
+            e_table = bs_obj.find('div', class_='list_con')
+            e_row = e_table.find_all('li')
+            for e_li in e_row:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '临安'
                 item['monitor_id'] = self.name #/scxx/tdsc/tdcrgg/2016-11-17/6409.html
                 item['monitor_title'] = e_li.find('span', class_='event').get_text(strip=True) # 标题
                 item['monitor_date'] = e_li.find('span', class_='time').get_text(strip=True) # 成交日期
@@ -72,8 +72,8 @@ class Spider(scrapy.Spider):
                     item['monitor_url'] = "http://www.linan.gov.cn/gtzyj/gsgg/cjxx/" + re.sub(r'\.\/', '',e_li.a.get('href'))
 
                 yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

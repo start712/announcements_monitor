@@ -58,18 +58,19 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        #log_obj.debug(u"准备分析内容：%s" %response.url)
-        sel = scrapy.Selector(response)
-        items = []
-        root_path = '/html/body/div[6]/div[2]/div/div[2]/div/ul/li'
-        sites = sel.xpath(root_path)  # [@id="list"]
-        if not sites:
-            sites = sel.xpath(root_path.replace("/tbody",""))
+        try:
+            #log_obj.debug(u"准备分析内容：%s" %response.url)
+            sel = scrapy.Selector(response)
+            items = []
+            root_path = '/html/body/div[6]/div[2]/div/div[2]/div/ul/li'
+            sites = sel.xpath(root_path)  # [@id="list"]
+            if not sites:
+                sites = sel.xpath(root_path.replace("/tbody",""))
 
-        for site in sites:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '杭州富阳'
-            try:
+            for site in sites:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '杭州富阳'
+
                 item['monitor_id'] = self.name
                 item['monitor_title'] = site.xpath('a/text()').extract_first()
                 item['monitor_date'] = site.xpath('span/text()').extract_first()
@@ -85,8 +86,8 @@ class Spider(scrapy.Spider):
                                          dont_filter=False)
                 else:
                     yield item
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

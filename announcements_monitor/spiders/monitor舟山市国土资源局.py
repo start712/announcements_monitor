@@ -72,16 +72,17 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        """在使用chrome等浏览器自带的提取extract xpath路径的时候,
-            导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
-        #e_table = bs_obj.find('div', class_='txtlist')
-        e_table = bs_obj.find('div', id='mlx_list')
-        e_row = e_table.find_all('li')
-        for e_tr in e_row:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '舟山'
-            try:
+        try:
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            """在使用chrome等浏览器自带的提取extract xpath路径的时候,
+                导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
+            #e_table = bs_obj.find('div', class_='txtlist')
+            e_table = bs_obj.find('div', id='mlx_list')
+            e_row = e_table.find_all('li')
+            for e_tr in e_row:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '舟山'
+
                 item['monitor_id'] = self.name
                 item['monitor_title'] = e_tr.a.get_text(strip=True) # 标题
                 item['monitor_date'] = e_tr.span.get_text(strip=True) # 成交日期
@@ -95,8 +96,8 @@ class Spider(scrapy.Spider):
                     yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 else:
                     yield item
-            except:
-                log_obj.update_error("%s中无法解析%s\n原因：%s" %(self.name, e_tr, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析%s\n原因：%s" %(self.name, e_tr, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

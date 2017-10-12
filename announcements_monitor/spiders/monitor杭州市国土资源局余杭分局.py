@@ -37,11 +37,12 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        """在使用chrome等浏览器自带的提取extract xpath路径的时候,
-           通常现在的浏览器都会对html文本进行一定的规范化,
-           导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
         try:
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            """在使用chrome等浏览器自带的提取extract xpath路径的时候,
+               通常现在的浏览器都会对html文本进行一定的规范化,
+               导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
+
             e_table = bs_obj.find('table', class_='ZjYhN018')
             e_trs = e_table.find_all('tr', class_='ZjYhN018')
             for e_tr in e_trs:

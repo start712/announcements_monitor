@@ -43,15 +43,16 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        """在使用chrome等浏览器自带的提取extract xpath路径的时候,
-            导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
-        e_row = bs_obj.find_all('table', style='line-height:20pt;border-bottom:1px dashed #b0b6de')
-        for e_tr in e_row:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '嘉兴'
-            e_tds = e_tr.find_all('td')
-            try:
+        try:
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            """在使用chrome等浏览器自带的提取extract xpath路径的时候,
+                导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
+            e_row = bs_obj.find_all('table', style='line-height:20pt;border-bottom:1px dashed #b0b6de')
+            for e_tr in e_row:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '嘉兴'
+                e_tds = e_tr.find_all('td')
+
                 item['monitor_id'] = self.name
                 item['monitor_title'] = e_tds[0].get_text(strip=True) # 标题
                 item['monitor_date'] = e_tds[1].get_text(strip=True) # 成交日期 site.xpath('td[3]/text()').extract_first()
@@ -65,8 +66,8 @@ class Spider(scrapy.Spider):
                     yield scrapy.Request(item['monitor_url'],meta={'item':item},callback=self.parse1, dont_filter=True)
                 else:
                     yield item
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

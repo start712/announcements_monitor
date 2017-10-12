@@ -37,17 +37,18 @@ class Spider(scrapy.Spider):
             #yield scrapy.Request(url=self.url2, method="POST", meta = meta, callback=self.parse, dont_filter=False)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        sites = bs_obj.find('table', id="GridViewer1").find_all('tr', class_="Row")
-        """在使用chrome等浏览器自带的提取extract xpath路径的时候,
-           通常现在的浏览器都会对html文本进行一定的规范化,
-           导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
+        try:
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            sites = bs_obj.find('table', id="GridViewer1").find_all('tr', class_="Row")
+            """在使用chrome等浏览器自带的提取extract xpath路径的时候,
+               通常现在的浏览器都会对html文本进行一定的规范化,
+               导致明明在浏览器中提取正确, 却在程序中返回错误的结果"""
 
-        for site0 in sites:
-            site = site0.find_all('td')
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '杭州大江东'
-            try:
+            for site0 in sites:
+                site = site0.find_all('td')
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '杭州大江东'
+
                 # 有“政府采购项目”的条目不是需要的数据
                 buyer = site[2].get_text(strip=True) # 采购单位
                 #print 'buyer:', buyer
@@ -69,8 +70,8 @@ class Spider(scrapy.Spider):
                     yield scrapy.Request(url=item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
                 else:
                     yield item
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
     def parse1(self, response):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

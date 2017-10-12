@@ -48,14 +48,15 @@ class Spider(scrapy.Spider):
             yield scrapy.Request(url=url, callback=self.parse)
 
     def parse(self, response):
-        bs_obj = bs4.BeautifulSoup(response.text,'html.parser')
-        e_ul = bs_obj.find('div', class_='cate_list').ul
-        e_lis = e_ul.find_all('li')
-        for e_li in e_lis:
-            item = announcements_monitor.items.AnnouncementsMonitorItem()
-            item['monitor_city'] = '大江东'
-            item['parcel_status'] = 'city_planning'
-            try:
+        try:
+            bs_obj = bs4.BeautifulSoup(response.text,'html.parser')
+            e_ul = bs_obj.find('div', class_='cate_list').ul
+            e_lis = e_ul.find_all('li')
+            for e_li in e_lis:
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '大江东'
+                item['parcel_status'] = 'city_planning'
+
                 item['monitor_id'] = self.name
                 item['monitor_title'] = e_li.a.get_text(strip=True) # 标题
                 item['monitor_date'] = e_li.span.get_text(strip=True) # 成交日期
@@ -63,8 +64,8 @@ class Spider(scrapy.Spider):
 
                 if re.search(ur'公示', item['monitor_title']):
                     yield item
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" %(self.name, traceback.format_exc()))
 
 
 if __name__ == '__main__':
