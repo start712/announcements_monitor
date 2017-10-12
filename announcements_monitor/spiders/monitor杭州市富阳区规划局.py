@@ -37,13 +37,13 @@ with open(os.getcwd() + r'\announcements_monitor\spiders\needed_data.txt', 'r') 
     needed_data = s.split(',')
 needed_data = [s.encode('utf8') for s in needed_data]
 
-monitor_page = 1  # 监控目录页数
+monitor_page = 11  # 监控目录页数
 
 class Spider(scrapy.Spider):
     name = "500003"
 
     def start_requests(self):
-        self.urls = ["http://www.fuyang.gov.cn/fy/ghj/jghs/index_%s.jhtml" %i for i in xrange(monitor_page)]
+        self.urls = ["http://www.fuyang.gov.cn/fy/ghj/jghs/index_%s.jhtml" %(i+1) for i in xrange(monitor_page)]
         for url in self.urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
@@ -75,6 +75,21 @@ class Spider(scrapy.Spider):
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
+
+    # 爬去全部数据，存入CSV文件
+    def parse2(self, response):
+        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+        item = response.meta['item']
+        try:
+            item['content_detail'],item['monitor_extra'] = spider_func.df_output(bs_obj,self.name,item['parcel_status'])
+            pd.DataFrame([item['monitor_title'],]).to_csv(r'C:\Users\Administrator\Desktop\data.csv', mode='a', encoding='utf_8_sig')
+            item['content_detail'].to_csv(r'C:\Users\Administrator\Desktop\data.csv',mode='a',encoding='utf_8_sig')
+            pd.DataFrame([]).to_csv(r'C:\Users\Administrator\Desktop\data.csv', mode='a', encoding='utf_8_sig')
+            pd.DataFrame([]).to_csv(r'C:\Users\Administrator\Desktop\data.csv', mode='a', encoding='utf_8_sig')
+            #yield item
+        except:
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            #yield response.meta['item']
 
 if __name__ == '__main__':
     pass
