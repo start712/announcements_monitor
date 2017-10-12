@@ -50,7 +50,7 @@ class Command(ScrapyCommand):
         # settings = get_project_settings()
 
         spider_loader = self.crawler_process.spider_loader
-        spider_list = mysql_con.connect("SELECT spider_id FROM spider_list WHERE `type` = 'monitor'", ip='localhost',user='spider',password = 'startspider', dbname = 'spider')
+        spider_list = mysql_con.connect("SELECT spider_id FROM spider_list WHERE `type` = 'monitor'", host='localhost',user='spider',password = 'startspider', dbname = 'spider')
         spider_list = [l0[0] for l0 in spider_list]
         for spidername in args or spider_loader.list():
             if spidername in spider_list:
