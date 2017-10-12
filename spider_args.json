@@ -194,5 +194,19 @@
     "city":"富阳",
     "table_tag": "table",
     "table_attrs": {"class":"MsoNormalTable"}
+  },
+  "500004":{
+    "city":"浙江",
+    "function":["txt_output", "file_output"],
+    "index":{
+      "txt_output":{
+        "tag":"div",
+        "attrs":{"class":"schism"}
+      },
+      "file_output":{
+        "tag":"a",
+        "file_type":["rar","zip"]
+      }
+    }
   }
 }
