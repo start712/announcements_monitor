@@ -14,6 +14,8 @@ sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 reload(sys)
 sys.setdefaultencoding('utf8')
 
+DOWNLOAD_TIMEOUT = 60
+
 #import mysql_connecter
 #mysql_connecter = mysql_connecter.mysql_connecter()
 
