@@ -37,7 +37,7 @@ with open(os.getcwd() + r'\announcements_monitor\spiders\needed_data.txt', 'r') 
     needed_data = s.split(',')
 needed_data = [s.encode('utf8') for s in needed_data]
 
-monitor_page = 11  # 监控目录页数
+monitor_page = 1  # 监控目录页数
 
 class Spider(scrapy.Spider):
     name = "500003"
@@ -83,7 +83,22 @@ class Spider(scrapy.Spider):
         try:
             item['content_detail'],item['monitor_extra'] = spider_func.df_output(bs_obj,self.name,item['parcel_status'])
             pd.DataFrame([item['monitor_title'],]).to_csv(r'C:\Users\Administrator\Desktop\data.csv', mode='a', encoding='utf_8_sig')
-            item['content_detail'].to_csv(r'C:\Users\Administrator\Desktop\data.csv',mode='a',encoding='utf_8_sig')
+
+            ser = item['content_detail'][1]
+            ser.index = [re.sub(ur'：','',s) for s in item['content_detail'][0]]
+
+            addition = ser[u'建设情况'].replace('\n',u'，')
+            addition = re.sub(r'\s', '', addition)
+            data_list = re.split(ur'，', addition, re.S)
+            comp = re.compile(ur'(?<=[^\d])+\d+.*')
+            data_dict = {
+                 comp.sub('',s):comp.search(s).group() for s in data_list if comp.search(s)
+            }
+            ser0 = pd.Series(data_dict)
+            ser = ser.append(ser0)
+
+            df = pd.DataFrame(ser).T
+            df.to_csv(r'C:\Users\Administrator\Desktop\data.csv',mode='a',encoding='utf_8_sig')
             pd.DataFrame([]).to_csv(r'C:\Users\Administrator\Desktop\data.csv', mode='a', encoding='utf_8_sig')
             pd.DataFrame([]).to_csv(r'C:\Users\Administrator\Desktop\data.csv', mode='a', encoding='utf_8_sig')
             #yield item
