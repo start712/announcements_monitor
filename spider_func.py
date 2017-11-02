@@ -111,6 +111,9 @@ class spider_func(object):
     def city_planning(self, spider_id, city, title, bs_obj, **kwargs):
         dir_path = os.path.join(os.getcwd() + '\\files\\')
         spider_args = self.spider_args[spider_id]
+        if not os.path.exists(dir_path + '-file_dir.log'):
+            with open(dir_path + '-file_dir.log', 'w') as f:
+                f.write('')
         with open(dir_path + '-file_dir.log','r') as f:
             s = f.read()
 

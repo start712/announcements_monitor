@@ -37,7 +37,7 @@ with open(os.getcwd() + r'\announcements_monitor\spiders\needed_data.txt', 'r') 
     needed_data = s.split(',')
 needed_data = [s.encode('utf8') for s in needed_data]
 
-monitor_page = 1  # 监控目录页数
+monitor_page = 3  # 监控目录页数
 
 class Spider(scrapy.Spider):
     name = "500001"
@@ -55,7 +55,7 @@ class Spider(scrapy.Spider):
 
             for i in xrange(monitor_page):
                 html_list.append(bs4.BeautifulSoup(driver.page_source,'html.parser'))
-                driver.find_element_by_link_text(u'[下一页]').click()
+                driver.find_element_by_link_text('[下一页]').click()
                 time.sleep(1)
 
             driver.quit()
