@@ -51,7 +51,7 @@ class Spider(scrapy.Spider):
             driver = PhantomJS_driver.initialization()
             driver.get(response.url)
             html_list = []
-            monitor_page = 3 # 监控目录页数
+            monitor_page = 1 # 监控目录页数
 
             for i in xrange(monitor_page):
                 html_list.append(bs4.BeautifulSoup(driver.page_source,'html.parser'))
@@ -61,18 +61,19 @@ class Spider(scrapy.Spider):
 
             for bs_obj in html_list:
                 e_table = bs_obj.find('table', class_='publicityCss')
-                e_row = e_table.find_all('tr')
+                e_row = e_table.find_all('tr')[1:]
                 for e_tr in e_row:
                     item = announcements_monitor.items.AnnouncementsMonitorItem()
                     item['monitor_city'] = '杭州'
+                    item['parcel_status'] = 'city_planning'
 
                     # 除去标题
                     if not e_tr.a:
                         continue
 
                     e_tds = e_tr.find_all('td')
-                    item['monitor_id'] = self.name #/scxx/tdsc/tdcrgg/2016-11-17/6409.html
-                    item['monitor_title'] = "[%s]%s" %(e_tds[0].get_text(strip=True),e_tds[1].get_text(strip=True)) # 标题
+                    item['monitor_id'] = self.name
+                    item['monitor_title'] = e_tds[0].a.get_text(strip=True) # 标题
                     item['monitor_date'] = e_tds[2].get_text(strip=True) # 成交日期
                     item['monitor_url'] = 'http://www.hzplanning.gov.cn' + e_tds[0].a.get('href')
 
@@ -84,11 +85,33 @@ class Spider(scrapy.Spider):
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
         try:
-            item['content_detail'],item['monitor_extra'] = spider_func.df_output(bs_obj,self.name,item['parcel_status'])
+            df = spider_func.city_planning(self.name, item['monitor_city'], item['monitor_title'], bs_obj)
+            if df is not None:
+                item['monitor_extra'] = df
+
+            e_div = bs_obj.find('div', id='gsp')
+            img_url = 'http://www.hzplanning.gov.cn/DesktopModules/GHJ.PlanningNotice/' + e_div.a.get('href')
+
+            yield scrapy.Request(img_url, meta={'item': item}, callback=self.parse_img, dont_filter=True)
+        except:
+            log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            yield response.meta['item']
+
+    def parse_img(self, response):
+        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+        item = response.meta['item']
+
+        try:
+            print "\n====>Running parse_img \n"
+            e_div = bs_obj.find('div', id='ImageDIV')
+            img_url = e_div.img.get('src')
+            img_url = 'http://www.hzplanning.gov.cn' + re.sub(r'\?r\=.+','',img_url)
+            PhantomJS_driver.get_file(img_url, os.getcwd() + 'files\\%s.jpg' %item['monitor_title'])
             yield item
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
+
 
 if __name__ == '__main__':
     pass

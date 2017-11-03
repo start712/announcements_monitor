@@ -166,14 +166,12 @@
   },
   "500000":{
     "city":"杭州",
-    "table_tag": "table",
-    "table_attrs": {},
-    "pretreatment":["the_last_table"],
-    "extra_func": "extra_parse",
-    "extra": {
-      "tag": "table",
-      "attrs": {},
-      "row_tag": "p"
+    "function":["txt_output"],
+    "index":{
+      "txt_output":{
+        "tag":"div",
+        "attrs":{"class":"notices-table"}
+      }
     }
   },
   "500001":{

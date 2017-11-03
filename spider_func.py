@@ -169,6 +169,10 @@ class spider_func(object):
                 l.append("%s_%s_%s%s" %(city, title, e0.get_text(strip=True), s))
             return l
 
+    def img_output(self, dir_path, city, title, bs_obj, index0):
+        pass
+
+
 
 
 """

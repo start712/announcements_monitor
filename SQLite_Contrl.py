@@ -108,10 +108,10 @@ if __name__ == '__main__':
     command = command()
 
     #print command.connect("DROP TABLE `URL_ToCheck`")
-    #print command.connect(r"CREATE TABLE URL_ToCheck(`insert_time` timestamp not null default current_timestamp,"
-    #                      " `url` VARCHAR(255) PRIMARY KEY,"
-    #                      " `status` CHAR(1) DEFAULT 1,"
-    #                      " `remark` VARCHAR(255) DEFAULT '')")
+    print command.connect(r"CREATE TABLE URL_ToCheck(`insert_time` timestamp not null default current_timestamp,"
+                          " `url` VARCHAR(255) PRIMARY KEY,"
+                          " `status` CHAR(1) DEFAULT 1,"
+                          " `remark` VARCHAR(255) DEFAULT '')")
 
     #print command.connect("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
     #print command.insert_url('wtf222')
