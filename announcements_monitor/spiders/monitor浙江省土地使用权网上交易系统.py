@@ -17,6 +17,7 @@ import re
 import traceback
 import datetime
 import bs4
+import numpy as np
 
 log_path = r'%s/log/spider_DEBUG(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
 
@@ -28,6 +29,8 @@ import spider_log  ########
 import spider_func
 import PhantomJS_driver
 import time
+import html_table_reader
+html_table_reader = html_table_reader.html_table_reader()
 PhantomJS_driver = PhantomJS_driver.PhantomJS_driver()
 spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
@@ -51,6 +54,7 @@ class Spider(scrapy.Spider):
 
         # 统计总共多少页
         driver = PhantomJS_driver.initialization()
+        driver.set_page_load_timeout(360)
         driver.get('about:blank')
         driver.get(response.url)
         driver.switch_to.frame('contentmain')
@@ -72,6 +76,7 @@ class Spider(scrapy.Spider):
             page, row = current_row
             try:
                 driver = PhantomJS_driver.initialization()
+                driver.set_page_load_timeout(360)
                 driver.get('about:blank')
                 driver.get(response.url)
                 driver.switch_to.frame('contentmain')
@@ -97,7 +102,7 @@ class Spider(scrapy.Spider):
 
                 print "分析第%s行中。。。" %row
                 e_row = e_trs[row-1]
-                title0 = e_row.find_elements_by_tag_name('td')[1].text
+                title0 = e_row.find_elements_by_tag_name('td')[0].text
 
                 detail_button = e_row.find_element_by_tag_name('a')
                 detail_button.click()
@@ -122,6 +127,24 @@ class Spider(scrapy.Spider):
                 driver.switch_to_window(driver.window_handles[-1])
 
                 driver.switch_to.frame('contentmain')
+
+                # 详情页中的表格
+                #table_html = bs4.BeautifulSoup(driver.page_source,'html.parser')
+                #df = self.parse_table(driver.page_source)
+                l = pd.read_html(driver.page_source)
+                print len(l)
+                df1,df2 = l[-2:]
+                arr = np.array(df2).reshape(-1, 2)
+                ser = pd.Series(arr[:, 1], index=arr[:, 0])
+                ser.loc['挂牌起始价(RMB)'] = df1.loc[1,1]
+                ser['竞买保证金(RMB)'] = df1.loc[1,3]
+                #driver.switch_to.frame('time')
+                #time0 = driver.find_element_by_tag_name('div').text
+                #ser['距离挂牌开始时间'] = time0
+                ser[pd.isnull(ser) == False].to_excel('C:\\Users\\Administrator\\Desktop\\files\\%s.xlsx' %title0)
+
+                # 下载文件
+                #driver.switch_to.frame('contentmain')
                 e_div = driver.find_element_by_class_name('tab_list')
                 e_a = e_div.find_elements_by_tag_name('a')[5]
                 e_a.click()
@@ -168,6 +191,8 @@ class Spider(scrapy.Spider):
             current_row = page, row
 
             driver.quit()
+
+
 
 if __name__ == '__main__':
     pass
