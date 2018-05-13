@@ -92,12 +92,20 @@ class Spider(scrapy.Spider):
             e_div = bs_obj.find('div', id='gsp')
             img_url = 'http://www.hzplanning.gov.cn/DesktopModules/GHJ.PlanningNotice/' + e_div.a.get('href')
 
+            
             yield scrapy.Request(img_url, meta={'item': item}, callback=self.parse_img, dont_filter=True)
         except:
             log_obj.error(item['monitor_url'], "%s（%s）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
             yield response.meta['item']
 
     def parse_img(self, response):
+        driver = PhantomJS_driver.initialization()
+        driver.get(response.url)
+        with open('BUG.html','w') as f:
+            f.write(driver.page_source)
+        driver.get_screenshot_as_file('BUG.png')
+        driver.quit()       
+        
         bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         item = response.meta['item']
 

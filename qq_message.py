@@ -67,6 +67,6 @@ class qq_message(object):
 if __name__ == '__main__':
     # 测试
     qq_message = qq_message()
-    to_who = u'思达特机器人'
+    to_who = u'【工作号】刘'
     msg = u'这是测试消息\n' * 100
     qq_message.short_msg(to_who, msg)
