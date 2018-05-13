@@ -42,7 +42,7 @@ class Spider(scrapy.Spider):
     def start_requests(self):
         self.urls = ["http://tdjy.zjdlr.gov.cn/GTJY_ZJ/go_home",]
         for url in self.urls:
-            yield scrapy.Request(url=url, callback=self.parse)
+            yield scrapy.Request(url=url, callback=self.catelog_parse)
 
     # def parse(self, response):
     #
@@ -67,8 +67,8 @@ class Spider(scrapy.Spider):
             url = url0 + str(i + 1)
             print("目录页：" + url)
 
-            resp = requests_manager.get_html(url)
-            bs_obj = bs4.BeautifulSoup(resp.content, 'html.parser')
+            html = requests_manager.get_html(url)
+            bs_obj = bs4.BeautifulSoup(html, 'html.parser')
             e_table = bs_obj.table
 
             # 解析目录页中的一行数据，即一个公告
@@ -93,8 +93,7 @@ class Spider(scrapy.Spider):
         announcement_url = response.url
         print("公告页：" + announcement_url)
 
-        resp = requests_manager.get_html(announcement_url)
-        bs_obj = bs4.BeautifulSoup(resp.content, 'html.parser')
+        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
         e_table = bs_obj.table
 
         for e_a in e_table.find_all('a'):
@@ -110,8 +109,7 @@ class Spider(scrapy.Spider):
         item = response.meta['item']
         print("详情页：" + detail_url)
 
-        resp = requests_manager.get_html(detail_url)
-        bs_obj = bs4.BeautifulSoup(resp.content, 'html.parser')
+        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
 
         file_div = bs_obj.find('div', class_='bt')
         file_id = re.search("(?<=javascript:downLoadDoc\(')\d+?(?='\))", file_div.prettify()).group()
