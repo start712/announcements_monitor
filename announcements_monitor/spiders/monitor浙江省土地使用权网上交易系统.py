@@ -27,18 +27,12 @@ reload(sys)
 sys.setdefaultencoding('utf8')
 import spider_log  ########
 import spider_func
-import PhantomJS_driver
 import time
-import html_table_reader
-html_table_reader = html_table_reader.html_table_reader()
-PhantomJS_driver = PhantomJS_driver.PhantomJS_driver()
+import requests_manager
+
+requests_manager = requests_manager.requests_manager()
 spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
-
-with open(os.getcwd() + r'\announcements_monitor\spiders\needed_data.txt', 'r') as f:
-    s = f.read()
-    needed_data = s.split(',')
-needed_data = [s.encode('utf8') for s in needed_data]
 
 monitor_page = 1  # 监控目录页数
 
@@ -50,147 +44,105 @@ class Spider(scrapy.Spider):
         for url in self.urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
-    def parse(self, response):
+    # def parse(self, response):
+    #
+    #     for release_time, announcement_url in self.catelog_parse(response.url):
+    #         time.sleep(1)
+    #         for detail_url in self.announcement_parse(announcement_url):
+    #             time.sleep(1)
+    #             for ser0, file_url in self.detail_parse(detail_url):
+    #                 time.sleep(1)
+    #                 ser = ser0.append(pd.Series({"发布时间": release_time}))
+    #                 # print(ser)
+    #
+    #                 # df = df.append(ser, ignore_index=True)
+    #                 # df.to_excel("/home/dyson/Desktop/data.xlsx")
 
-        # 统计总共多少页
-        driver = PhantomJS_driver.initialization()
-        driver.set_page_load_timeout(360)
-        driver.get('about:blank')
-        driver.get(response.url)
-        driver.switch_to.frame('contentmain')
-        driver.find_element_by_class_name('a1').click()
+    def catelog_parse(self, response):
+        # 解析目录页
+        url0 = response.url
+        global monitor_page
 
-        e_div = driver.find_element_by_class_name('content_fy')
-        e_div.find_element_by_link_text('末页').click()
-        total_page = int(e_div.find_element_by_tag_name('strong').text)
+        for i in range(0, monitor_page + 1):
+            url = url0 + str(i + 1)
+            print("目录页：" + url)
 
-        print "一共有%s页" %total_page
-        page_dict = {(i + 1): None for i in range(total_page)}
-        print page_dict
-        current_row = [1,1]
-        driver.quit()
+            resp = requests_manager.get_html(url)
+            bs_obj = bs4.BeautifulSoup(resp.content, 'html.parser')
+            e_table = bs_obj.table
 
-        detail_page_row = 1
-        detail_page_row_count = 1
-        while True:
-            page, row = current_row
-            try:
-                driver = PhantomJS_driver.initialization()
-                driver.set_page_load_timeout(360)
-                driver.get('about:blank')
-                driver.get(response.url)
-                driver.switch_to.frame('contentmain')
-                driver.find_element_by_class_name('a1').click()
+            # 解析目录页中的一行数据，即一个公告
+            for e_a in e_table.find_all('a'):
+                item = announcements_monitor.items.AnnouncementsMonitorItem()
+                item['monitor_city'] = '浙江土拍网'
 
-                # 翻页
-                read_page = 1
-                for i in range(page-1):
-                    e_div = driver.find_element_by_class_name('content_fy')
-                    e_div.find_element_by_link_text('下一页').click()
-                    read_page = e_div.find_element_by_tag_name('strong').text
-                print '目前页面，第%s页' % read_page
+                item['monitor_id'] = self.name
+                item['monitor_title'] = e_a.parent.parent.td.get_text(strip=True)
+
+                s = e_a.get('onclick')
+                s_list = re.findall("(?<=')\d+?(?=')", s)
+
+                item['monitor_date'] = e_a.parent.find_previous_sibling('td').get_text(strip=True)
+                new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/noticeDetailAction?NOTICEID={0}&GDLB={1}".format(*s_list)
+
+                # yield release_time, new_url
+                yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.announcement_parse, dont_filter=True)
+
+    def announcement_parse(self, response):
+        item = response.meta['item']
+        announcement_url = response.url
+        print("公告页：" + announcement_url)
+
+        resp = requests_manager.get_html(announcement_url)
+        bs_obj = bs4.BeautifulSoup(resp.content, 'html.parser')
+        e_table = bs_obj.table
+
+        for e_a in e_table.find_all('a'):
+            s = e_a.get('href')
+            s_list = re.findall("(?<=')\d+?(?=')", s)
+
+            new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/landinfo?ResourceID={0}&flag={1}".format(*s_list)
+
+            yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.detail_parse, dont_filter=True)
+
+    def detail_parse(self, response):
+        detail_url = response.url
+        item = response.meta['item']
+        print("详情页：" + detail_url)
+
+        resp = requests_manager.get_html(detail_url)
+        bs_obj = bs4.BeautifulSoup(resp.content, 'html.parser')
+
+        file_div = bs_obj.find('div', class_='bt')
+        file_id = re.search("(?<=javascript:downLoadDoc\(')\d+?(?='\))", file_div.prettify()).group()
+        file_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/downFileAction?rid=%s&fileType=1" % file_id
+
+        e_div = bs_obj.find('div', class_='cotain-box')
+        e_table1 = e_div.find('td', class_='font_btn').table
+        df1 = pd.read_html(e_table1.prettify(), header=0)[0]
+
+        ser = df1.iloc[0].dropna()
+
+        e_table2 = e_div.find('td', class_='td_line2').table
+        df2 = pd.read_html(e_table2.prettify())[0]
+        df21 = df2[[0, 1]].dropna(axis=0).set_index([0, ]).T
+        df22 = df2[[2, 3]].dropna(axis=0).set_index([2, ]).T
+
+        ser = ser.append(df21.iloc[0]).append(df22.iloc[0])
+
+        item["content_detail"] = ser.to_json()
+        item["monitor_extra"] = pd.Series({"file_url": file_url, "detail_url": detail_url})
+
+        item["monitor_title"] = item["monitor_title"] + ser[u"地块编号"]
+
+        if datetime.datetime.strptime(ser[u"拍卖开始时间"], "%Y年%m月%d日 %H 时%M分") > datetime.datetime.now():
+            item["parcel_status"] = "onsell"
+        else:
+            item["parcel_status"] = "sold"
 
 
-                # 开始分析行数据
-                driver.switch_to.frame('noticelist_main')
-                e_trs = driver.find_elements_by_tag_name('tr')[1:]
+        yield item
 
-                # 统计每一页中有几行
-                if page_dict[page] is None:
-                    page_dict[page] = len(e_trs)
-                    print "第%s页中有%s行" %(page, page_dict[page])
-
-                print "分析第%s行中。。。" %row
-                e_row = e_trs[row-1]
-                title0 = e_row.find_elements_by_tag_name('td')[0].text
-
-                detail_button = e_row.find_element_by_tag_name('a')
-                detail_button.click()
-                driver.switch_to_window(driver.window_handles[-1])
-
-                # 详情页还有几行数据需要点击
-                #driver.get_screenshot_as_file('C:\Users\Administrator\Desktop\data.png')
-
-                driver.switch_to.frame('contentmain')
-                driver.switch_to.frame('resslist_main')
-
-                e_table = driver.find_element_by_tag_name('table')
-                e_trs = e_table.find_elements_by_tag_name('tr')[1:]
-                detail_page_row_count = len(e_trs)
-
-                e_tr = e_trs[detail_page_row-1]
-
-                title = e_tr.find_elements_by_tag_name('td')[1].text
-
-                detail_button = e_tr.find_element_by_tag_name('a')
-                detail_button.click()
-                driver.switch_to_window(driver.window_handles[-1])
-
-                driver.switch_to.frame('contentmain')
-
-                # 详情页中的表格
-                #table_html = bs4.BeautifulSoup(driver.page_source,'html.parser')
-                #df = self.parse_table(driver.page_source)
-                l = pd.read_html(driver.page_source)
-                print len(l)
-                df1,df2 = l[-2:]
-                arr = np.array(df2).reshape(-1, 2)
-                ser = pd.Series(arr[:, 1], index=arr[:, 0])
-                ser.loc['挂牌起始价(RMB)'] = df1.loc[1,1]
-                ser['竞买保证金(RMB)'] = df1.loc[1,3]
-                #driver.switch_to.frame('time')
-                #time0 = driver.find_element_by_tag_name('div').text
-                #ser['距离挂牌开始时间'] = time0
-                ser[pd.isnull(ser) == False].to_excel('C:\\Users\\Administrator\\Desktop\\files\\%s.xlsx' %title0)
-
-                # 下载文件
-                #driver.switch_to.frame('contentmain')
-                e_div = driver.find_element_by_class_name('tab_list')
-                e_a = e_div.find_elements_by_tag_name('a')[5]
-                e_a.click()
-                driver.switch_to_window(driver.window_handles[-1])
-
-                #driver.get_screenshot_as_file('C:\Users\Administrator\Desktop\data.png')
-                #with open('C:\Users\Administrator\Desktop\data.html', 'w') as f:
-                #    f.write(driver.page_source)
-
-                bs_obj = bs4.BeautifulSoup(driver.page_source, 'html.parser')
-                e_div = bs_obj.find('div', class_='xs_list_table')
-
-                title1_list = [e.get_text(strip=True) for e in e_div.find_all('tr')[1:]]
-
-                html_text = e_div.prettify(encoding='utf8')
-
-                comment_list = re.findall(r'\<\!--.+?--\>', html_text, re.S)
-                #print comment_list
-                for i in range(len(comment_list)):
-                    print "正在分析%s， 一共%s个文件" %(title1_list[i],len(comment_list))
-                    s = comment_list[i]
-                    m = re.search(r"(?<=\<a href\=\" ).+?(?=\")", s)
-                    file_url = 'http://tdjy.zjdlr.gov.cn/GTJY_ZJ/' + m.group()
-                    #file_name = re.search(r'(?<=fileName\=).+', file_url).group()
-                    PhantomJS_driver.get_file(file_url, 'C:\\Users\\Administrator\\Desktop\\files\\(%s)%s' %(title,title1_list[i]))
-
-                #yield scrapy.Request(item['monitor_url'], meta={'item': item}, callback=self.parse1, dont_filter=True)
-            except:
-                log_obj.update_error("%s中无法解析\n原因：%s|%s|%s\n%s" %(self.name,page,row,detail_page_row, traceback.format_exc()))
-
-            if detail_page_row < detail_page_row_count:
-                detail_page_row = detail_page_row + 1
-            else:
-                detail_page_row = 1
-                if row == page_dict[page]:
-                    row = 1
-                    page = page + 1
-                else:
-                    row = row + 1
-
-                if page > total_page:
-                    break
-
-            current_row = page, row
-
-            driver.quit()
 
 
 
