@@ -34,13 +34,14 @@ requests_manager = requests_manager.requests_manager()
 spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
 
-monitor_page = 1  # 监控目录页数
+monitor_page = 3  # 监控目录页数
 
 class Spider(scrapy.Spider):
     name = "500009"
 
     def start_requests(self):
-        self.urls = ["http://tdjy.zjdlr.gov.cn/GTJY_ZJ/go_home",]
+        global monitor_page
+        self.urls = ["http://tdjy.zjdlr.gov.cn/GTJY_ZJ/noticelist_page?SSXZQ=&RESOURCELB=&GDLB=&JYFS=&NOTICENO=&NOTICENAME=&checkNOTICENAME=&startDate=&endDate=&zylb=%s" %(i+1) for i in range(0, monitor_page + 1)]
         for url in self.urls:
             yield scrapy.Request(url=url, callback=self.catelog_parse)
 
@@ -59,16 +60,15 @@ class Spider(scrapy.Spider):
     #                 # df.to_excel("/home/dyson/Desktop/data.xlsx")
 
     def catelog_parse(self, response):
-        # 解析目录页
-        url0 = response.url
-        global monitor_page
+        try:
+            # 解析目录页
+            url = response.url
+            print(u"目录页：" + url)
 
-        for i in range(0, monitor_page + 1):
-            url = url0 + str(i + 1)
-            print("目录页：" + url)
-
-            html = requests_manager.get_html(url)
+            html = requests_manager.get_html(url)            
             bs_obj = bs4.BeautifulSoup(html, 'html.parser')
+            # with open(u"目录页.html",'w') as f:
+                # f.write(bs_obj.prettify())
             e_table = bs_obj.table
 
             # 解析目录页中的一行数据，即一个公告
@@ -87,59 +87,74 @@ class Spider(scrapy.Spider):
 
                 # yield release_time, new_url
                 yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.announcement_parse, dont_filter=True)
+        except:
+            log_obj.update_error("%s中无法解析\n原因：%s" % (self.name, traceback.format_exc()))
 
     def announcement_parse(self, response):
-        item = response.meta['item']
-        announcement_url = response.url
-        print("公告页：" + announcement_url)
+        try:
+            item = response.meta['item']
+            announcement_url = response.url
+            print(u"公告页：" + announcement_url)
 
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
-        e_table = bs_obj.table
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            # with open(u"公告页.html",'w') as f:
+                # f.write(bs_obj.prettify())
+            e_table = bs_obj.table
 
-        for e_a in e_table.find_all('a'):
-            s = e_a.get('href')
-            s_list = re.findall("(?<=')\d+?(?=')", s)
+            for e_a in e_table.find_all('a'):
+                s = e_a.get('href')
+                s_list = re.findall("(?<=')\d+?(?=')", s)
 
-            new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/landinfo?ResourceID={0}&flag={1}".format(*s_list)
+                new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/landinfo?ResourceID={0}&flag={1}".format(*s_list)
 
-            yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.detail_parse, dont_filter=True)
+                yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.detail_parse, dont_filter=True)
+        except:
+            log_obj.error("%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
 
     def detail_parse(self, response):
-        detail_url = response.url
-        item = response.meta['item']
-        print("详情页：" + detail_url)
+        try:
+            detail_url = response.url
+            item = response.meta['item']
+            print(u"详情页：" + detail_url)
 
-        bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')
+            # with open(u"详情页.html",'w') as f:
+                # f.write(bs_obj.prettify())
 
-        file_div = bs_obj.find('div', class_='bt')
-        file_id = re.search("(?<=javascript:downLoadDoc\(')\d+?(?='\))", file_div.prettify()).group()
-        file_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/downFileAction?rid=%s&fileType=1" % file_id
+            file_div = bs_obj.find('div', class_='bt')
+            file_id = re.search("(?<=javascript:downLoadDoc\(')\d+?(?='\))", file_div.prettify()).group()
+            file_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/downFileAction?rid=%s&fileType=1" % file_id
 
-        e_div = bs_obj.find('div', class_='cotain-box')
-        e_table1 = e_div.find('td', class_='font_btn').table
-        df1 = pd.read_html(e_table1.prettify(), header=0)[0]
+            e_div = bs_obj.find('div', class_='cotain-box')
+            e_table1 = e_div.find('td', class_='font_btn').table
+            df1 = pd.read_html(e_table1.prettify(), header=0)[0]
 
-        ser = df1.iloc[0].dropna()
+            ser = df1.iloc[0].dropna()
 
-        e_table2 = e_div.find('td', class_='td_line2').table
-        df2 = pd.read_html(e_table2.prettify())[0]
-        df21 = df2[[0, 1]].dropna(axis=0).set_index([0, ]).T
-        df22 = df2[[2, 3]].dropna(axis=0).set_index([2, ]).T
+            e_table2 = e_div.find('td', class_='td_line2').table
+            df2 = pd.read_html(e_table2.prettify())[0]
+            df21 = df2[[0, 1]].dropna(axis=0).set_index([0, ]).T
+            df22 = df2[[2, 3]].dropna(axis=0).set_index([2, ]).T
 
-        ser = ser.append(df21.iloc[0]).append(df22.iloc[0])
+            ser = ser.append(df21.iloc[0]).append(df22.iloc[0])
 
-        item["content_detail"] = ser.to_json()
-        item["monitor_extra"] = pd.Series({"file_url": file_url, "detail_url": detail_url})
+            item["content_detail"] = ser.to_json()
+            item["monitor_extra"] = pd.Series({"file_url": file_url, "detail_url": detail_url}).to_json()
 
-        item["monitor_title"] = item["monitor_title"] + ser[u"地块编号"]
+            item["monitor_title"] = item["monitor_title"] + ser[u"地块编号"]
 
-        if datetime.datetime.strptime(ser[u"拍卖开始时间"], "%Y年%m月%d日 %H 时%M分") > datetime.datetime.now():
-            item["parcel_status"] = "onsell"
-        else:
-            item["parcel_status"] = "sold"
+            b1 = u"拍卖开始时间" in ser and datetime.datetime.strptime(ser[u"拍卖开始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
+            b2 = u"挂牌起始时间" in ser and datetime.datetime.strptime(ser[u"挂牌起始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
+            
+            if b1 or b2:
+                item["parcel_status"] = "onsell"
+            else:
+                item["parcel_status"] = "sold"
 
 
-        yield item
+            yield item
+        except:
+            log_obj.error("%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
 
 
 
