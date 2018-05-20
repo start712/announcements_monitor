@@ -171,4 +171,4 @@ class TuPaiWang_update(object):
 
 if __name__ == "__main__":
     TuPaiWang_update = TuPaiWang_update()
-    TuPaiWang_update.get_data()
+    TuPaiWang_update.main()
