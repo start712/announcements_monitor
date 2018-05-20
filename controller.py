@@ -50,6 +50,8 @@ class controller(object):
 
     def report(self):
 
+        name_list = [u'【工作号】刘', u'Mr.Yao', u'qxq']
+    
         # 有新内容的话，发送邮件
         report_file = [csv_file, ]
         if os.path.exists(csv_file):
@@ -62,13 +64,13 @@ class controller(object):
                             continue
                         s = s + ",".join(row) + '\n'
 
-            for id0 in [u'【工作号】刘', u'Mr.Yao', u'qxq', u'拾光']:
+            for id0 in name_list:
                 qq_message.short_msg(id0,s.decode('utf8'))
 
             print u'找到新地块,QQ消息已发送'
 
         else:
-            for id0 in [u'【工作号】刘', u'Mr.Yao', u'qxq', u'拾光']:
+            for id0 in name_list:
                 qq_message.short_msg(id0,u"无新公告！！")
 
 
@@ -96,5 +98,7 @@ class controller(object):
 
 if __name__ == '__main__':
     controller = controller()
+    
     controller.min_run()
-    # controller.report()
+
+    
