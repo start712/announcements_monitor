@@ -55,7 +55,7 @@ class TuPaiWang_update(object):
                                      db=mysql_args["db"],
                                      charset=mysql_args["charset"]
         )) as conn:
-            sql = "SELECT * FROM `monitor` WHERE `city` = \"浙江土拍网\" AND `status` = \"onsell\""
+            sql = u"SELECT * FROM `monitor` WHERE `city` = \"浙江土拍网\" AND `status` = \"onsell\" ORDER BY insert_time DESC limit 5"
             df = pd.read_sql(sql, conn)
 
         return df
@@ -99,7 +99,7 @@ class TuPaiWang_update(object):
 
             return item
         except:
-            log_obj.error("%s（ %s ）中无法解析\n%s" % (u"土拍网数据更新程序", detail_url, traceback.format_exc()))
+            log_obj.error("%s(%s)中无法解析\n%s" % (u"土拍网数据更新程序", detail_url, traceback.format_exc()))
 
     def mysql_connect(self, sql, host, user, password, dbname, charset, args=None):
         """
@@ -138,7 +138,7 @@ class TuPaiWang_update(object):
             sql1 = "`%s` = CASE `%s` \n%s" % (key, index_name, '\n'.join(l))
             sql_list.append(sql1 + '\nEND')
         sql = sql + ',\n'.join(sql_list) + "\nWHERE `%s` IN (%s)" % (index_name, ','.join(["'%s'" % s for s in df.index.tolist()]))
-        # print sql
+        print sql
         self.mysql_connect(sql, host=host, user=user, password=password, dbname=dbname, charset=charset)
 
         print("UPDATE successfully !")
@@ -147,23 +147,33 @@ class TuPaiWang_update(object):
     def main(self):
         # 获取自己数据库中土拍网的在售数据
         df = self.get_data()
+        
+        for r in range(df.shape[0]):
+        
+            s = df.loc[r, u"extra"]
+            ser0 = pd.read_json(s, typ='series')
 
-        for r in df.shape[0]:
-            d = pd.read_json(df["extra"][r])
+            item = self.detail_parse(ser0["detail_url"])
+            
+            # item['used'] = ""
+            
+            df0 = pd.DataFrame(item, index=[r, ])
+            
+            df.update(df0)
 
-            item = self.detail_parse(d["detail_url"])
+            # print(df.head(3))
 
-            df.update(pd.DataFrame(item))
+        df = df.set_index(["key",])
+        
+        print df
 
-            print(df)
-
-        # self.update_df_data(df, "monitor", "key",
-        #                     host=mysql_args["host"],
-        #                     user=mysql_args["user"],
-        #                     password=mysql_args["password"],
-        #                     dbname=mysql_args["db"],
-        #                     charset=mysql_args["charset"]
-        #                     )
+        self.update_df_data(df, "monitor", "key",
+                            host=mysql_args["host"],
+                            user=mysql_args["user"],
+                            password=mysql_args["password"],
+                            dbname=mysql_args["db"],
+                            charset=mysql_args["charset"]
+                            )
 
 
 
