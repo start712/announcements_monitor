@@ -109,7 +109,7 @@ class Spider(scrapy.Spider):
 
                 yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.detail_parse, dont_filter=True)
         except:
-            log_obj.error("%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            log_obj.error(response.url, "%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
 
     def detail_parse(self, response):
         try:
@@ -138,8 +138,8 @@ class Spider(scrapy.Spider):
 
             ser = ser.append(df21.iloc[0]).append(df22.iloc[0])
 
-            item["content_detail"] = ser.to_json()
-            item["monitor_extra"] = pd.Series({"file_url": file_url, "detail_url": detail_url}).to_json()
+            item["content_detail"] = pd.DataFrame(ser).T
+            item["monitor_extra"] = pd.DataFrame({"file_url": file_url, "detail_url": detail_url}, index=[0,])
 
             item["monitor_title"] = item["monitor_title"] + ser[u"地块编号"]
 
@@ -154,7 +154,7 @@ class Spider(scrapy.Spider):
 
             yield item
         except:
-            log_obj.error("%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
+            log_obj.error(response.url, "%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
 
 
 

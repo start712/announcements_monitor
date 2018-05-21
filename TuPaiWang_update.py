@@ -56,7 +56,7 @@ class TuPaiWang_update(object):
                                      db=mysql_args["db"],
                                      charset=mysql_args["charset"]
         )) as conn:
-            sql = u"SELECT * FROM `monitor` WHERE `city` = \"浙江土拍网\" AND `status` = \"onsell\" ORDER BY insert_time DESC limit 5"
+            sql = u"SELECT * FROM `monitor` WHERE `city` = \"浙江土拍网\" AND `status` = \"onsell\" ORDER BY insert_time DESC " #limit 100
             df = pd.read_sql(sql, conn)
 
         return df
@@ -88,7 +88,7 @@ class TuPaiWang_update(object):
 
             ser = ser.append(df21.iloc[0]).append(df22.iloc[0])
 
-            item["detail"] = ser.to_json()
+            item["detail"] = ser.to_json(force_ascii=False)
 
             b1 = u"拍卖开始时间" in ser and datetime.datetime.strptime(ser[u"拍卖开始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
             b2 = u"挂牌起始时间" in ser and datetime.datetime.strptime(ser[u"挂牌起始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
@@ -100,7 +100,7 @@ class TuPaiWang_update(object):
 
             return item
         except:
-            log_obj.error("%s(%s)中无法解析\n%s" % (u"土拍网数据更新程序", detail_url, traceback.format_exc()))
+            log_obj.error(detail_url, "%s( %s )中无法解析\n%s" %(u"土拍网数据更新程序", detail_url, traceback.format_exc()))
 
     def mysql_connect(self, sql, host, user, password, dbname, charset, args=None):
         """
@@ -139,7 +139,7 @@ class TuPaiWang_update(object):
             sql1 = "`%s` = CASE `%s` \n%s" % (key, index_name, '\n'.join(l))
             sql_list.append(sql1 + '\nEND')
         sql = sql + ',\n'.join(sql_list) + "\nWHERE `%s` IN (%s)" % (index_name, ','.join(["'%s'" % s for s in df.index.tolist()]))
-        print sql
+        # print sql
         self.mysql_connect(sql, host=host, user=user, password=password, dbname=dbname, charset=charset)
 
         print("UPDATE successfully !")
@@ -148,14 +148,13 @@ class TuPaiWang_update(object):
     def main(self, name_list):
         # 获取自己数据库中土拍网的在售数据
         df = self.get_data()
-        df_old = df.copy()
         
         for r in range(df.shape[0]):
         
             s = df.loc[r, u"extra"]
-            ser0 = pd.read_json(s, typ='series')
+            df0 = pd.read_json(s)
 
-            item = self.detail_parse(ser0["detail_url"])
+            item = self.detail_parse(df0["detail_url"][0])
             
             # item['used'] = ""
             
@@ -165,7 +164,7 @@ class TuPaiWang_update(object):
 
             # print(df.head(3))
 
-        df = df.set_index(["key",])
+        df = df.set_index(["key",]).drop(["used",], axis=1)
         
         # print df
 
@@ -181,20 +180,29 @@ class TuPaiWang_update(object):
         s = u"测试消息\n土拍网挂牌土地监控报告：\n"
         count0 = df["status"].value_counts()
 
-        new_sold = count0["sold"] if "sold" in count0 else new_sold = 0
+        new_sold = count0["sold"] if "sold" in count0 else 0
 
         s = s + u"距离上次监控，已有%s块挂牌土地成交\n" %new_sold
 
-        ser = df_old["detai"].apply(lambda s:re.search(u"\"拍卖开始时间\":\".+\"|\"挂牌截止时间\":\".+\"", s).group())
-
-        ser = ser.apply(lambda s:re.search(u"\d+年\d+月\d+日", s).group())
+        df_old = self.get_data() # 使用copy会出现乱码
+        
+        comp1 = re.compile(u"挂牌截止时间.+?,|拍卖开始时间.+?,") # \"拍卖开始时间\":\".+\"|
+        # print df_old["detail"]
+        ser = df_old["detail"].apply(lambda s:comp1.search(s).group() if comp1.search(s) else "")
+        
+        comp2 = re.compile(u"\d+年\d+月\d+日")
+        ser = ser.apply(lambda s:comp2.search(s).group() if comp2.search(s) else "")
 
         count1 = ser.value_counts()
+        print count1
         date_today = datetime.datetime.now().strftime(u"%Y年%m月%d日")
-
-        new_selling = count1[date_today] if date_today in count1 else new_selling = 0
+        
+        new_selling = count1[date_today] if date_today in count1 else 0
 
         s = s + u"今日一共有%s块土地成交" %new_selling
+        
+        for id0 in name_list:
+            qq_message.short_msg(id0,s.decode('utf8'))
 
 
 
@@ -207,4 +215,4 @@ class TuPaiWang_update(object):
 
 if __name__ == "__main__":
     TuPaiWang_update = TuPaiWang_update()
-    TuPaiWang_update.main()
+    TuPaiWang_update.main([])

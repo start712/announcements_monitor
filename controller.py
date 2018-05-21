@@ -17,8 +17,10 @@ import pymail
 import time
 import csv
 import qq_message
-
 qq_message = qq_message.qq_message()
+
+import TuPaiWang_update
+TuPaiWang_update = TuPaiWang_update.TuPaiWang_update()
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 reload(sys)
@@ -73,7 +75,9 @@ class controller(object):
             for id0 in name_list:
                 qq_message.short_msg(id0,u"无新公告！！")
 
-
+        # 土拍网土地监控
+        TuPaiWang_update.main(name_list)
+        
         # 发送log
         date0 = datetime.datetime.date(datetime.datetime.today() + datetime.timedelta(days=-1))
         log_file = [
@@ -94,6 +98,9 @@ class controller(object):
         else:
             self.pymail.try_send_mail(None, "爬虫报告%s缺少文件" % date0, to_mail='3118734521@qq.com')
             self.pymail.try_send_mail(None, "爬虫报告%s缺少文件" % date0, to_mail='415281457@qq.com')
+            
+            
+ 
 
 
 if __name__ == '__main__':
