@@ -18,6 +18,7 @@ from contextlib import closing
 import bs4
 import pymysql
 import pandas as pd
+import qq_message
 
 log_path = r'%s/log/spider_DEBUG(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
 
@@ -144,9 +145,10 @@ class TuPaiWang_update(object):
         print("UPDATE successfully !")
 
 
-    def main(self):
+    def main(self, name_list):
         # 获取自己数据库中土拍网的在售数据
         df = self.get_data()
+        df_old = df.copy()
         
         for r in range(df.shape[0]):
         
@@ -165,7 +167,7 @@ class TuPaiWang_update(object):
 
         df = df.set_index(["key",])
         
-        print df
+        # print df
 
         self.update_df_data(df, "monitor", "key",
                             host=mysql_args["host"],
@@ -174,6 +176,30 @@ class TuPaiWang_update(object):
                             dbname=mysql_args["db"],
                             charset=mysql_args["charset"]
                             )
+
+        # 编辑QQ消息
+        s = u"测试消息\n土拍网挂牌土地监控报告：\n"
+        count0 = df["status"].value_counts()
+
+        new_sold = count0["sold"] if "sold" in count0 else new_sold = 0
+
+        s = s + u"距离上次监控，已有%s块挂牌土地成交\n" %new_sold
+
+        ser = df_old["detai"].apply(lambda s:re.search(u"\"拍卖开始时间\":\".+\"|\"挂牌截止时间\":\".+\"", s).group())
+
+        ser = ser.apply(lambda s:re.search(u"\d+年\d+月\d+日", s).group())
+
+        count1 = ser.value_counts()
+        date_today = datetime.datetime.now().strftime(u"%Y年%m月%d日")
+
+        new_selling = count1[date_today] if date_today in count1 else new_selling = 0
+
+        s = s + u"今日一共有%s块土地成交" %new_selling
+
+
+
+
+
 
 
 

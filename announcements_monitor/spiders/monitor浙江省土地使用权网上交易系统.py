@@ -144,7 +144,7 @@ class Spider(scrapy.Spider):
             item["monitor_title"] = item["monitor_title"] + ser[u"地块编号"]
 
             b1 = u"拍卖开始时间" in ser and datetime.datetime.strptime(ser[u"拍卖开始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
-            b2 = u"挂牌起始时间" in ser and datetime.datetime.strptime(ser[u"挂牌起始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
+            b2 = u"挂牌截止时间" in ser and datetime.datetime.strptime(ser[u"挂牌截止时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
             
             if b1 or b2:
                 item["parcel_status"] = "onsell"
