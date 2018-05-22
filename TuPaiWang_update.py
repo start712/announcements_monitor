@@ -19,6 +19,7 @@ import bs4
 import pymysql
 import pandas as pd
 import qq_message
+qq_message = qq_message.qq_message()
 
 log_path = r'%s/log/spider_DEBUG(%s).log' %(os.getcwd(),datetime.datetime.date(datetime.datetime.today()))
 
