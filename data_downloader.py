@@ -15,6 +15,11 @@ from contextlib import closing
 import pymysql
 import pandas as pd
 
+sys.path.append(sys.prefix + "\\Lib\\MyWheels")
+sys.path.append(os.getcwd()) #########
+reload(sys)
+sys.setdefaultencoding('utf8')
+
 #import set_log  
 
 #log_obj = set_log.Logger('data_downloader.log', set_log.logging.WARNING,
@@ -40,9 +45,12 @@ class data_downloader(object):
         pass
 
     def get_data(self):
-        sql = "SELECT * FROM monitor WHERE `fixture_date` BETWEEN DATA(%s）AND DATE(%s)"
-
-
+        sql = "SELECT * FROM `monitor` \
+               WHERE `city` = \"浙江土拍网\"  \
+               AND DATE(`fixture_date`) BETWEEN DATE('%s') AND DATE('%s')" %(downloader_args["start_date"].strftime("%Y-%m-%d"),\
+                                                                             downloader_args["end_date"].strftime("%Y-%m-%d")\
+                                                                             )
+                                                                                                                       
         with closing(pymysql.connect(host=mysql_args["host"],
                                      user=mysql_args["user"],
                                      password=mysql_args["password"],
