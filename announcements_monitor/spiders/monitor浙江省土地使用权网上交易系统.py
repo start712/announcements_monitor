@@ -138,7 +138,7 @@ class Spider(scrapy.Spider):
 
             ser = ser.append(df21.iloc[0]).append(df22.iloc[0])
 
-            item["content_detail"] = pd.DataFrame(ser).T
+            item["content_detail"] = pd.DataFrame(ser, columns=[0,]).T
             item["monitor_extra"] = pd.DataFrame({"file_url": file_url, "detail_url": detail_url}, index=[0,])
 
             item["monitor_title"] = item["monitor_title"] + ser[u"地块编号"]

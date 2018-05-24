@@ -30,8 +30,8 @@ sys.setdefaultencoding('utf8')
 #log_obj.cleanup('data_downloader.log', if_cleanup = True)  # 是否需要在每次运行程序前清空Log文件
 
 downloader_args = {
-    "start_date": datetime.datetime.strptime(u"2018年5月22日", u"%Y年%m月%d日"), # 获取数据的开始时间
-    "end_date": datetime.datetime.strptime(u"2018年5月22日", u"%Y年%m月%d日"), # 获取数据的结束时间
+    "start_date": datetime.datetime.strptime(u"2018年5月23日", u"%Y年%m月%d日"), # 获取数据的开始时间
+    "end_date": datetime.datetime.strptime(u"2018年5月23日", u"%Y年%m月%d日"), # 获取数据的结束时间
 }
 
 mysql_args = {
@@ -94,21 +94,25 @@ class data_downloader(object):
 
         df = pd.DataFrame([])
         for r in range(df0.shape[0]):
-            ser = pd.read_json(df0.loc[r, "detail"], typ="series")
+            print df0.loc[r, "detail"]
+            ser = pd.read_json(df0.loc[r, "detail"]).loc[0, :]
 
             df = df.append(ser, ignore_index=True)
             df.loc[r, u"挂牌日期"] = df0.loc[r, "fixture_date"]
 
-            file_url = pd.read_json(df0.loc[r, "extra"], typ="series")["file_url"]
+            file_url = pd.read_json(df0.loc[r, "extra"]).loc[0, :]["file_url"]
 
             path = os.getcwd() + "\\files\\"
 
             if not os.path.exists(path):
                 os.system("mkdir %s" %re.sub("[\\\()（）\s]", '', df0.loc[r, "title"])[:80])
+            
+            print file_url, path
             self.file_parse(file_url, path)
 
 
 
 if __name__ == '__main__':
     data_downloader = data_downloader()
-    print(data_downloader.get_data())
+    df0 = data_downloader.get_data()
+    data_downloader.data_unpack(df0)
