@@ -14,6 +14,9 @@ import os
 from contextlib import closing
 import pymysql
 import pandas as pd
+import requests
+import bs4
+import re
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 sys.path.append(os.getcwd()) #########
@@ -47,8 +50,8 @@ class data_downloader(object):
     def get_data(self):
         sql = "SELECT * FROM `monitor` \
                WHERE `city` = \"浙江土拍网\"  \
-               AND DATE(`fixture_date`) BETWEEN DATE('%s') AND DATE('%s')" %(downloader_args["start_date"].strftime("%Y-%m-%d"),\
-                                                                             downloader_args["end_date"].strftime("%Y-%m-%d")\
+               AND DATE(`fixture_date`) BETWEEN DATE('%s') AND DATE('%s')" %(downloader_args["start_date"].strftime("%Y-%m-%d"),
+                                                                             downloader_args["end_date"].strftime("%Y-%m-%d")
                                                                              )
                                                                                                                        
         with closing(pymysql.connect(host=mysql_args["host"],
@@ -61,6 +64,48 @@ class data_downloader(object):
 
         return df
 
+    def file_parse(self, file_url, path):
+        print("文件下载页：" + file_url)
+
+        global headers
+        resp = requests.get(file_url, headers=headers)
+        bs_obj = bs4.BeautifulSoup(resp.content, 'html.parser')
+
+        for e_a in bs_obj.find_all('a'):
+            s = e_a.get('onclick')
+            s_list = re.findall("(?<=')[^,]+?(?=')", s)
+
+            new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/download?RECORDID={0}&fileName={1}".format(*s_list)
+            print("正在下载文件：" + new_url)
+
+            self.get_file(new_url, path + s_list[-1])
+
+    def get_file(self, url, targetfile):
+        global headers
+        r = requests.get(url, headers=headers)
+        with open(targetfile, "wb") as code:
+            code.write(r.content)
+
+        print("====>>>Successfully saving %s" % targetfile)
+
+    def data_unpack(self, df0):
+
+        df0 = df0[["title", "fixture_date", "detail", "extra"]]
+
+        df = pd.DataFrame([])
+        for r in range(df0.shape[0]):
+            ser = pd.read_json(df0.loc[r, "detail"], typ="series")
+
+            df = df.append(ser, ignore_index=True)
+            df.loc[r, u"挂牌日期"] = df0.loc[r, "fixture_date"]
+
+            file_url = pd.read_json(df0.loc[r, "extra"], typ="series")["file_url"]
+
+            path = os.getcwd() + "\\files\\"
+
+            if not os.path.exists(path):
+                os.system("mkdir %s" %re.sub("[\\\()（）\s]", '', df0.loc[r, "title"])[:80])
+            self.file_parse(file_url, path)
 
 
 

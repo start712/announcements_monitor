@@ -195,7 +195,7 @@ class TuPaiWang_update(object):
         ser = ser.apply(lambda s:comp2.search(s).group() if comp2.search(s) else "")
 
         count1 = ser.value_counts()
-        print count1
+        # print count1
         date_today = datetime.datetime.now().strftime(u"%Y年%m月%d日")
         
         new_selling = count1[date_today] if date_today in count1 else 0
