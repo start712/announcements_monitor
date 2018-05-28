@@ -125,6 +125,7 @@ class Spider(scrapy.Spider):
             file_id = re.search("(?<=javascript:downLoadDoc\(')\d+?(?='\))", file_div.prettify()).group()
             file_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/downFileAction?rid=%s&fileType=1" % file_id
 
+            
             e_div = bs_obj.find('div', class_='cotain-box')
             e_table1 = e_div.find('td', class_='font_btn').table
             df1 = pd.read_html(e_table1.prettify(), header=0)[0]

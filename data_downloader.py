@@ -102,11 +102,13 @@ class data_downloader(object):
         df = pd.DataFrame([])
         for r in range(df0.shape[0]):
             print u"正在解析%s的数据" % df0.loc[r, "title"]
-
+            
+            # print df0.loc[r, "detail"]
             ser = pd.read_json(df0.loc[r, "detail"]).loc[0, :]
 
             df = df.append(ser, ignore_index=True)
             df.loc[r, u"挂牌日期"] = df0.loc[r, "fixture_date"]
+            df.loc[r, u"备注"] = df0.loc[r, "extra"]
 
             file_url = pd.read_json(df0.loc[r, "extra"]).loc[0, :]["file_url"]
 

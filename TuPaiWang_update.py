@@ -89,7 +89,8 @@ class TuPaiWang_update(object):
 
             ser = ser.append(df21.iloc[0]).append(df22.iloc[0])
 
-            item["detail"] = ser.to_json(force_ascii=False)
+            item["detail"] = pd.DataFrame(ser, columns=[0,]).T.to_json(force_ascii=False)
+            #print pd.DataFrame(ser, columns=[0,]).T
 
             b1 = u"拍卖开始时间" in ser and datetime.datetime.strptime(ser[u"拍卖开始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
             b2 = u"挂牌起始时间" in ser and datetime.datetime.strptime(ser[u"挂牌起始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
