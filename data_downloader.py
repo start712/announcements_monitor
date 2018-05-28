@@ -85,7 +85,7 @@ class data_downloader(object):
             new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/download?RECORDID={0}&fileName={1}".format(*s_list)
             print("正在下载文件：" + new_url)
 
-            self.get_file(new_url, path + s_list[-1])
+            self.get_file(new_url, path + re.sub("[\\\()（）\s]", '', s_list[-1])[:80])
 
     def get_file(self, url, targetfile):
         global headers
@@ -101,7 +101,8 @@ class data_downloader(object):
 
         df = pd.DataFrame([])
         for r in range(df0.shape[0]):
-            print df0.loc[r, "detail"]
+            print u"正在解析%s的数据" % df0.loc[r, "title"]
+
             ser = pd.read_json(df0.loc[r, "detail"]).loc[0, :]
 
             df = df.append(ser, ignore_index=True)
@@ -109,13 +110,18 @@ class data_downloader(object):
 
             file_url = pd.read_json(df0.loc[r, "extra"]).loc[0, :]["file_url"]
 
-            path = os.getcwd() + "\\files\\"
-
+            path = os.getcwd() + "\\TuPaiWang_files\\"
             if not os.path.exists(path):
-                os.system("mkdir %s" %re.sub("[\\\()（）\s]", '', df0.loc[r, "title"])[:80])
+                os.mkdir(path)
+                
+            path = path + re.sub("[\\\()（）\s]", '', df0.loc[r, "title"])[:80] + "\\"
+            if not os.path.exists(path):
+                os.mkdir(path)
             
-            print file_url, path
             self.file_parse(file_url, path)
+            
+            df.to_excel(u"土拍网数据.xlsx")
+        
 
 
 
