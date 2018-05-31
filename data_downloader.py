@@ -31,9 +31,9 @@ sys.setdefaultencoding('utf8')
 #log_obj.cleanup('data_downloader.log', if_cleanup = True)  # 是否需要在每次运行程序前清空Log文件
 
 downloader_args = {
-    "start_date": datetime.datetime.strptime(u"2018年5月25日", u"%Y年%m月%d日"), # 获取数据的开始时间
-    "end_date": datetime.datetime.strptime(u"2018年5月29日", u"%Y年%m月%d日"), # 获取数据的结束时间
-    "if_download_files": True # True为下载,False为不下载,注意大小写
+    "start_date": datetime.datetime.strptime(u"2018年5月31日", u"%Y年%m月%d日"), # 获取数据的开始时间
+    "end_date": datetime.datetime.strptime(u"2018年5月31日", u"%Y年%m月%d日"), # 获取数据的结束时间
+    "if_download_files": False # True为下载,False为不下载,注意大小写
 }
 
 mysql_args = {
@@ -117,7 +117,7 @@ class data_downloader(object):
             df.loc[r, u"备注"] = df0.loc[r, "extra"]
 
             
-            if if_download_files:
+            if downloader_args["if_download_files"]:
                 file_url = pd.read_json(df0.loc[r, "extra"]).loc[0, :]["file_url"]
             
                 path = os.getcwd() + "\\TuPaiWang_files\\"
@@ -139,3 +139,4 @@ if __name__ == '__main__':
     data_downloader = data_downloader()
     df0 = data_downloader.get_data()
     data_downloader.data_unpack(df0)
+    time.sleep(60)
