@@ -34,7 +34,7 @@ requests_manager = requests_manager.requests_manager()
 spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
 
-monitor_page = 3  # 监控目录页数
+monitor_page = 30  # 监控目录页数
 
 class Spider(scrapy.Spider):
     name = "500009"
@@ -92,7 +92,7 @@ class Spider(scrapy.Spider):
 
     def announcement_parse(self, response):
         try:
-            item = response.meta['item']
+            item = response.meta['item'].copy()
             announcement_url = response.url
             print(u"公告页：" + announcement_url)
 
@@ -114,7 +114,7 @@ class Spider(scrapy.Spider):
     def detail_parse(self, response):
         try:
             detail_url = response.url
-            item = response.meta['item']
+            item = response.meta['item'].copy()
             print(u"详情页：" + detail_url)
 
             bs_obj = bs4.BeautifulSoup(response.text, 'html.parser')

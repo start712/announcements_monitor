@@ -17,9 +17,10 @@ import pandas as pd
 import requests
 import bs4
 import re
+import time
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
-sys.path.append(os.getcwd()) #########
+sys.path.append(os.getcwd())
 reload(sys)
 sys.setdefaultencoding('utf8')
 
@@ -30,8 +31,9 @@ sys.setdefaultencoding('utf8')
 #log_obj.cleanup('data_downloader.log', if_cleanup = True)  # 是否需要在每次运行程序前清空Log文件
 
 downloader_args = {
-    "start_date": datetime.datetime.strptime(u"2018年5月23日", u"%Y年%m月%d日"), # 获取数据的开始时间
-    "end_date": datetime.datetime.strptime(u"2018年5月23日", u"%Y年%m月%d日"), # 获取数据的结束时间
+    "start_date": datetime.datetime.strptime(u"2018年5月25日", u"%Y年%m月%d日"), # 获取数据的开始时间
+    "end_date": datetime.datetime.strptime(u"2018年5月29日", u"%Y年%m月%d日"), # 获取数据的结束时间
+    "if_download_files": True # True为下载,False为不下载,注意大小写
 }
 
 mysql_args = {
@@ -68,6 +70,10 @@ class data_downloader(object):
                                      charset=mysql_args["charset"]
         )) as conn:
             df = pd.read_sql(sql, conn)
+            
+            if df.empty:
+                print(u"您选择的日期内没有数据")
+                time.sleep(30)
 
         return df
 
@@ -110,18 +116,20 @@ class data_downloader(object):
             df.loc[r, u"挂牌日期"] = df0.loc[r, "fixture_date"]
             df.loc[r, u"备注"] = df0.loc[r, "extra"]
 
-            file_url = pd.read_json(df0.loc[r, "extra"]).loc[0, :]["file_url"]
-
-            path = os.getcwd() + "\\TuPaiWang_files\\"
-            if not os.path.exists(path):
-                os.mkdir(path)
+            
+            if if_download_files:
+                file_url = pd.read_json(df0.loc[r, "extra"]).loc[0, :]["file_url"]
+            
+                path = os.getcwd() + "\\TuPaiWang_files\\"
+                if not os.path.exists(path):
+                    os.mkdir(path)
+                    
+                path = path + re.sub("[\\\()（）\s]", '', df0.loc[r, "title"])[:80] + "\\"
+                if not os.path.exists(path):
+                    os.mkdir(path)
                 
-            path = path + re.sub("[\\\()（）\s]", '', df0.loc[r, "title"])[:80] + "\\"
-            if not os.path.exists(path):
-                os.mkdir(path)
-            
-            self.file_parse(file_url, path)
-            
+                self.file_parse(file_url, path)
+                
             df.to_excel(u"土拍网数据.xlsx")
         
 
