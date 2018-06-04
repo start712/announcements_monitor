@@ -52,7 +52,7 @@ class controller(object):
 
     def report(self):
 
-        name_list = [u'【工作号】刘', u'Mr.Yao', u'qxq']
+        name_list = [u'【工作号】刘', u'qxq', u'Selinda']
     
         # 有新内容的话，发送邮件
         report_file = [csv_file, ]

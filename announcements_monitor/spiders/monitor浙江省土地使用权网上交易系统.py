@@ -34,16 +34,16 @@ requests_manager = requests_manager.requests_manager()
 spider_func = spider_func.spider_func()
 log_obj = spider_log.spider_log() #########
 
-monitor_page = 30  # 监控目录页数
+monitor_page = 5  # 监控目录页数
 
 class Spider(scrapy.Spider):
     name = "500009"
 
     def start_requests(self):
         global monitor_page
-        self.urls = ["http://tdjy.zjdlr.gov.cn/GTJY_ZJ/noticelist_page?SSXZQ=&RESOURCELB=&GDLB=&JYFS=&NOTICENO=&NOTICENAME=&checkNOTICENAME=&startDate=&endDate=&zylb=%s" %(i+1) for i in range(0, monitor_page + 1)]
+        self.urls = ["http://tdjy.zjdlr.gov.cn/GTJY_ZJ/noticelist_page?SSXZQ=&RESOURCELB=&GDLB=&JYFS=&NOTICENO=&NOTICENAME=&checkNOTICENAME=&startDate=&endDate=&zylb=01&currentPage=%s" %(i+1) for i in range(0, monitor_page)]
         for url in self.urls:
-            yield scrapy.Request(url=url, callback=self.catelog_parse)
+            yield scrapy.Request(url=url, callback=self.catelog_parse, dont_filter=False)
 
     # def parse(self, response):
     #
@@ -65,7 +65,7 @@ class Spider(scrapy.Spider):
             url = response.url
             print(u"目录页：" + url)
 
-            html = requests_manager.get_html(url)            
+            html = requests_manager.get_html(url)
             bs_obj = bs4.BeautifulSoup(html, 'html.parser')
             # with open(u"目录页.html",'w') as f:
                 # f.write(bs_obj.prettify())
@@ -86,7 +86,7 @@ class Spider(scrapy.Spider):
                 new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/noticeDetailAction?NOTICEID={0}&GDLB={1}".format(*s_list)
 
                 # yield release_time, new_url
-                yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.announcement_parse, dont_filter=True)
+                yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.announcement_parse, dont_filter=False)
         except:
             log_obj.update_error("%s中无法解析\n原因：%s" % (self.name, traceback.format_exc()))
 
@@ -107,7 +107,7 @@ class Spider(scrapy.Spider):
 
                 new_url = "http://tdjy.zjdlr.gov.cn/GTJY_ZJ/landinfo?ResourceID={0}&flag={1}".format(*s_list)
 
-                yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.detail_parse, dont_filter=True)
+                yield scrapy.Request(url=new_url, meta={'item': item}, callback=self.detail_parse, dont_filter=False)
         except:
             log_obj.error(response.url, "%s（ %s ）中无法解析\n%s" % (self.name, response.url, traceback.format_exc()))
 

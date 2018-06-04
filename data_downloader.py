@@ -18,6 +18,7 @@ import requests
 import bs4
 import re
 import time
+import traceback
 
 sys.path.append(sys.prefix + "\\Lib\\MyWheels")
 sys.path.append(os.getcwd())
@@ -31,8 +32,8 @@ sys.setdefaultencoding('utf8')
 #log_obj.cleanup('data_downloader.log', if_cleanup = True)  # 是否需要在每次运行程序前清空Log文件
 
 downloader_args = {
-    "start_date": datetime.datetime.strptime(u"2018年5月31日", u"%Y年%m月%d日"), # 获取数据的开始时间
-    "end_date": datetime.datetime.strptime(u"2018年5月31日", u"%Y年%m月%d日"), # 获取数据的结束时间
+    "start_date": datetime.datetime.strptime(u"2018年5月8日", u"%Y年%m月%d日"), # 获取数据的开始时间
+    "end_date": datetime.datetime.strptime(u"2018年5月10日", u"%Y年%m月%d日"), # 获取数据的结束时间
     "if_download_files": False # True为下载,False为不下载,注意大小写
 }
 
@@ -74,6 +75,8 @@ class data_downloader(object):
             if df.empty:
                 print(u"您选择的日期内没有数据")
                 time.sleep(30)
+         
+        print(u"从数据中读取到表格%s" %df.shape[0])
 
         return df
 
@@ -107,7 +110,7 @@ class data_downloader(object):
 
         df = pd.DataFrame([])
         for r in range(df0.shape[0]):
-            print u"正在解析%s的数据" % df0.loc[r, "title"]
+            print(u"正在解析%s的数据" % df0.loc[r, "title"].replace("�", ""))
             
             # print df0.loc[r, "detail"]
             ser = pd.read_json(df0.loc[r, "detail"]).loc[0, :]
@@ -136,7 +139,15 @@ class data_downloader(object):
 
 
 if __name__ == '__main__':
-    data_downloader = data_downloader()
-    df0 = data_downloader.get_data()
-    data_downloader.data_unpack(df0)
-    time.sleep(60)
+    try:
+        data_downloader = data_downloader()
+        df0 = data_downloader.get_data()
+        data_downloader.data_unpack(df0)
+        print(u"\n数据下载完毕")
+        time.sleep(60)
+        
+    except:
+        with open(u"土拍网数据下载错误报告.log", "w") as f:
+            f.write(traceback.format_exc())
+        print(u"\n数据下载出错,已经生成报告")
+        time.sleep(60)

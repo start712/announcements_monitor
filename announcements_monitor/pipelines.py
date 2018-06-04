@@ -134,7 +134,7 @@ class AnnouncementsMonitorPipeline(object):
                   item["monitor_key"], item["monitor_date"], item["monitor_url"], item['content_detail'], item["monitor_extra"])
         try:
             #csv_report.output_data(item, "result", method='a')
-            print (sql,params)
+            # print (sql,params)
             tx.execute(sql,params)
             if params:
                 logger0.info(u"key saved:%s" % item["monitor_key"])
