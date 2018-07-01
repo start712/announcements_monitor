@@ -147,7 +147,7 @@ class Spider(scrapy.Spider):
             b1 = u"拍卖开始时间" in ser and datetime.datetime.strptime(ser[u"拍卖开始时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
             b2 = u"挂牌截止时间" in ser and datetime.datetime.strptime(ser[u"挂牌截止时间"], u"%Y年%m月%d日 %H时%M分") > datetime.datetime.now()
             
-            if b1 or b2:
+            if (b1 or b2) and u'成交价' not in ser:
                 item["parcel_status"] = "onsell"
             else:
                 item["parcel_status"] = "sold"
